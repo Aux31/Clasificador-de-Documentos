@@ -1,0 +1,37 @@
+MIGRATE.PY — RESUMEN
+====================
+
+1. QUÉ HACE
+-----------
+Lee migration-config.json, limpia carpetas obsoletas y crea la estructura nueva completa en cada OC.
+Detecta automáticamente el estado de cada OC (vieja, mixta o nueva) y actúa según su escenario.
+Nunca borra carpetas con archivos adentro ni carpetas protegidas por new_structure o folders_to_preserve.
+
+
+2. ESCENARIOS
+-------------
+| Escenario | Condición                      | Acción                                                             |
+|-----------|--------------------------------|--------------------------------------------------------------------|
+| 1         | Solo carpetas viejas           | Borrar folders_to_delete + crear estructura nueva (12 folders, 67 subfolders) |
+| 2         | Carpetas viejas Y nuevas       | Borrar folders_to_delete + completar estructura nueva faltante     |
+| 3         | Solo carpetas nuevas (o vacía) | No borrar nada + crear subfolders faltantes                        |
+
+
+3. RESULTADOS TEST (test_migration2)
+-------------------------------------
+| OC         | Escenario | Folders new | Subfolders | Old restantes | Archivos perdidos | Resultado |
+|------------|-----------|-------------|------------|---------------|-------------------|-----------|
+| OC-000001  | 2         | 12/12       | 67/67      | 0             | 0                 | OK        |
+| OC-000002  | 2         | 12/12       | 67/67      | 0             | 0                 | OK        |
+| OC-000003  | 3         | 12/12       | 67/67      | 0             | 0                 | OK        |
+| OC-000004  | 1         | 12/12       | 67/67      | 0             | 0                 | OK        |
+
+
+4. FLUJO PARA PRODUCCIÓN
+------------------------
+1. python migrate.py --path "C:\SharePoint\OCs" --mode dry-run
+2. Revisar migration_dry_run.json — verificar escenarios y listas to_delete / to_keep
+3. python migrate.py --path "C:\SharePoint\OCs" --mode backup
+4. python migrate.py --path "C:\SharePoint\OCs" --mode execute --oc OC-XXXXXX  (probar una OC piloto)
+5. Validar que la OC piloto tiene 12 folders, 67 subfolders y 0 carpetas old
+6. python migrate.py --path "C:\SharePoint\OCs" --mode execute  (todas las OCs)
