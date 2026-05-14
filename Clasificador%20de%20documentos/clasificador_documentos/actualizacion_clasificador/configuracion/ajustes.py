@@ -140,12 +140,11 @@ MAPA_CARPETAS_BORRADOR = {
 
 # Mapeo tipo → carpeta exacta en SharePoint (orden = prioridad de clasificación)
 MAPA_CARPETAS = {
-    "FOB LETTER":              "OTROS",
-    "PL + INV":                "4.27 Packing list definitivo",
-    "WEIGHT CERTIFICATE":      "OTROS",
-    "QUALITY CERTIFICATE":     "OTROS",
-    "FUMIGATION CERTIFICATE":  "OTROS",
-    "PACKING LIST":            "4.27 Packing list definitivo",
+    "FOB LETTER":          "OTROS",
+    "PL + INV":            "4.27 Packing list definitivo",
+    "WEIGHT CERTIFICATE":  "OTROS",
+    "QUALITY CERTIFICATE": "OTROS",
+    "PACKING LIST":        "4.27 Packing list definitivo",
     "INVOICE":             "4.02 Factura Definitiva",
     "BL":                  "4.05 BL-AWB-Porte definitivo",
     "MBL":                 "4.05 BL-AWB-Porte definitivo",
@@ -155,9 +154,8 @@ MAPA_CARPETAS = {
     "FITOSANITARIO":       "4.12 Aprob Borr Cert fito origen",
     "ZOOSANITARIO":        "4.18 Certifi Zoos Origen",
     "PRINTER":             "4.24 Aceptacion documentos de agencia",
-    "EXONERACION":              "4.25 Exoneracion Hacienda",
-    "MARCHAMO":                 "4.28 Foto del Marchamo",
-    "DECLARACION DE IMPORTACION": "OTROS",
+    "EXONERACION":         "4.25 Exoneracion Hacienda",
+    "MARCHAMO":            "4.28 Foto del Marchamo",
 }
 
 # Lista derivada — mantiene compatibilidad con clasificar_tipo()

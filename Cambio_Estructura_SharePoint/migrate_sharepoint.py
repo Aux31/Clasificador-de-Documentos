@@ -42,13 +42,21 @@ CONFIG_FILE   = SCRIPT_DIR / "migration-config.json"
 DRY_RUN_FILE  = SCRIPT_DIR / "migration_sp_dry_run.json"
 BACKUP_DIR    = SCRIPT_DIR / "backups"
 BACKUP_DIR.mkdir(exist_ok=True)
-LOGS_DIR      = SCRIPT_DIR / "logs"
-LOGS_DIR.mkdir(exist_ok=True)
-REGISTRO_FILE = SCRIPT_DIR / "ocs_migradas.json"
+MIGRACIONES_LOG = SCRIPT_DIR / "migraciones.log"
 BACKUP_MAX_AGE_MINUTES = 30
 
 # OCs de prueba a procesar
 OCS_PRUEBA = ["Prueba_1", "Prueba_2", "cmer-OC-00194453-IITC000", "cmer-OC-00191063-TCHC001", "cmer-OC-00195231-PAINL000", "cmer-OC-00196719-PAINL000"]
+
+# OCs del registro completo
+def _cargar_ocs_registro() -> list[str]:
+    registro = SCRIPT_DIR / "Registro_OCs" / "registro_nombres_OCs.txt"
+    if not registro.exists():
+        return []
+    lines = registro.read_text(encoding="utf-8").splitlines()
+    return [l.strip() for l in lines if l.strip().startswith("cmer-OC-")]
+
+OCS_REGISTRO = _cargar_ocs_registro()
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +256,30 @@ def run_dry_run(gc: GraphClient, oc_filter: str | None, config: dict) -> None:
     )
     print(f"\n[OK] Reporte guardado en {DRY_RUN_FILE}")
 
+    # Clasificación resumen por escenario
+    nuevas  = sorted(oc for oc, d in report["ocs"].items() if d["scenario"] == 3)
+    mixtas  = sorted(oc for oc, d in report["ocs"].items() if d["scenario"] == 2)
+    viejas  = sorted(oc for oc, d in report["ocs"].items() if d["scenario"] == 1)
+    no_encontradas = sorted(oc for oc in _resolver_ocs(oc_filter) if oc not in report["ocs"])
+
+    resumen = {
+        "generado": _now_iso(),
+        "nueva_estructura": {"total": len(nuevas),  "ocs": nuevas},
+        "mixta":            {"total": len(mixtas),  "ocs": mixtas},
+        "solo_vieja":       {"total": len(viejas),  "ocs": viejas},
+        "no_encontradas":   {"total": len(no_encontradas), "ocs": no_encontradas},
+    }
+    resumen_file = SCRIPT_DIR / "clasificacion_ocs.json"
+    resumen_file.write_text(json.dumps(resumen, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print(f"\n{'='*60}")
+    print(f"  CLASIFICACION FINAL")
+    print(f"  Nueva estructura : {len(nuevas)}")
+    print(f"  Mixta            : {len(mixtas)}")
+    print(f"  Solo vieja       : {len(viejas)}")
+    print(f"  No encontradas   : {len(no_encontradas)}")
+    print(f"  Resumen guardado : clasificacion_ocs.json")
+
 
 # ---------------------------------------------------------------------------
 # Modo backup
@@ -290,8 +322,6 @@ def run_backup(gc: GraphClient, oc_filter: str | None, config: dict) -> None:
 def run_execute(gc: GraphClient, oc_filter: str | None, config: dict, backup_file: Path | None = None) -> None:
 
     ocs = _resolver_ocs(oc_filter)
-    ts  = _timestamp()
-    log = {"generated_at": _now_iso(), "ocs": {}}
 
     for nombre_oc in ocs:
         ruta_oc  = f"{SHAREPOINT_CARPETA_OCS}/{nombre_oc}"
@@ -316,8 +346,7 @@ def run_execute(gc: GraphClient, oc_filter: str | None, config: dict, backup_fil
         if scenario == 3:
             created = _ensure_new_structure(gc, oc_id, id_map, config, oc_log)
             print(f"  Sin borrados, {created} carpetas creadas")
-            log["ocs"][nombre_oc] = oc_log
-            _actualizar_registro(nombre_oc, oc_log, LOGS_DIR / f"migration_sp_execution_log_{ts}.json", backup_file)
+            _actualizar_registro(nombre_oc, oc_log, backup_file)
             continue
 
         # Escenarios 1 y 2: borrar carpetas viejas vacias
@@ -362,14 +391,9 @@ def run_execute(gc: GraphClient, oc_filter: str | None, config: dict, backup_fil
         created = _ensure_new_structure(gc, oc_id, id_map, config, oc_log)
         print(f"  {created} carpetas nuevas creadas")
 
-        log["ocs"][nombre_oc] = oc_log
-        _actualizar_registro(nombre_oc, oc_log, LOGS_DIR / f"migration_sp_execution_log_{ts}.json", backup_file)
+        _actualizar_registro(nombre_oc, oc_log, backup_file)
 
-    log_file = LOGS_DIR / f"migration_sp_execution_log_{ts}.json"
-    log_file.write_text(
-        json.dumps(log, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    print(f"\n[OK] Log guardado en {log_file}")
+    print(f"\n[OK] Migracion completada. Ver {MIGRACIONES_LOG.name}")
 
 
 # ---------------------------------------------------------------------------
@@ -431,9 +455,13 @@ def _ensure_new_structure(gc: GraphClient, oc_id: str, id_map: dict,
 
 
 def _resolver_ocs(oc_filter: str | None) -> list[str]:
+    if oc_filter == "--all":
+        return OCS_REGISTRO
     if oc_filter:
-        if oc_filter not in OCS_PRUEBA:
-            sys.exit(f"[ERROR] OC '{oc_filter}' no esta en la lista. Opciones: {OCS_PRUEBA}")
+        # Buscar en ambas listas
+        todas = OCS_PRUEBA + OCS_REGISTRO
+        if oc_filter not in todas:
+            sys.exit(f"[ERROR] OC '{oc_filter}' no esta en la lista.")
         return [oc_filter]
     return OCS_PRUEBA
 
@@ -457,42 +485,45 @@ def _find_recent_backup() -> Path | None:
 # Registro de OCs migradas
 # ---------------------------------------------------------------------------
 
-def _actualizar_registro(nombre_oc: str, oc_log: dict, log_file: Path, backup_file: Path | None) -> None:
-    if REGISTRO_FILE.exists():
-        registro = json.loads(REGISTRO_FILE.read_text(encoding="utf-8"))
-    else:
-        registro = {"descripcion": "Registro de OCs con cambio de estructura ejecutado", "ocs": []}
+def _ocs_ya_migradas() -> set[str]:
+    """Retorna el conjunto de OCs que ya tienen entrada en migraciones.log."""
+    if not MIGRACIONES_LOG.exists():
+        return set()
+    migradas = set()
+    for line in MIGRACIONES_LOG.read_text(encoding="utf-8").splitlines():
+        if line.startswith("OC     : "):
+            migradas.add(line.removeprefix("OC     : ").strip())
+    return migradas
 
-    # Carpetas omitidas por tener archivos
-    omitidas = [
-        op["folder"] for op in oc_log.get("operations", [])
-        if op.get("result") == "warning" and "tiene archivos" in op.get("detail", "")
-    ]
-    # Errores
-    errores = [
-        f"{op['folder']}: {op.get('detail', '')}" for op in oc_log.get("operations", [])
-        if op.get("result") == "error"
-    ]
 
-    entrada = {
-        "oc":           nombre_oc,
-        "fecha":        datetime.now().strftime("%Y-%m-%d"),
-        "escenario":    oc_log.get("scenario"),
-        "log":          log_file.name,
-        "backup":       f"backups/{backup_file.name}" if backup_file else None,
-        "carpetas_con_archivos_omitidas": omitidas,
-    }
+def _actualizar_registro(nombre_oc: str, oc_log: dict, backup_file: Path | None) -> None:
+    fecha  = datetime.now().strftime("%Y-%m-%d")
+    backup = f"backups/{backup_file.name}" if backup_file else "sin backup"
+
+    ops_borradas = [op["folder"] for op in oc_log.get("operations", []) if op.get("action") == "delete" and op.get("result") == "ok"]
+    ops_creadas  = [op["folder"] for op in oc_log.get("operations", []) if op.get("action") == "create" and op.get("result") == "ok"]
+    omitidas     = [op["folder"] for op in oc_log.get("operations", []) if op.get("result") == "warning" and "tiene archivos" in op.get("detail", "")]
+    errores      = [f"{op['folder']}: {op.get('detail', '')}" for op in oc_log.get("operations", []) if op.get("result") == "error"]
+
+    lines = []
+    lines.append(f"OC     : {nombre_oc}")
+    lines.append(f"Fecha  : {fecha}")
+    lines.append(f"Backup : {backup}")
+    if ops_borradas:
+        lines.append(f"Borradas ({len(ops_borradas)}): {', '.join(ops_borradas)}")
+    if ops_creadas:
+        lines.append(f"Creadas  ({len(ops_creadas)}): {', '.join(ops_creadas)}")
+    if omitidas:
+        lines.append(f"Omitidas (con archivos): {', '.join(omitidas)}")
     if errores:
-        entrada["errores"] = errores
+        lines.append(f"Errores: {', '.join(errores)}")
+    lines.append("-" * 80)
+    lines.append("")
 
-    # Reemplazar entrada existente si ya fue migrada antes
-    registro["ocs"] = [e for e in registro["ocs"] if e["oc"] != nombre_oc]
-    registro["ocs"].append(entrada)
+    with MIGRACIONES_LOG.open("a", encoding="utf-8") as f:
+        f.write("\n".join(lines))
 
-    REGISTRO_FILE.write_text(
-        json.dumps(registro, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    print(f"  [REG]  Registro actualizado en {REGISTRO_FILE.name}")
+    print(f"  [REG]  Entrada añadida a {MIGRACIONES_LOG.name}")
 
 
 # ---------------------------------------------------------------------------
@@ -503,21 +534,25 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Migracion de estructura de carpetas en SharePoint")
     parser.add_argument("--mode", required=True, choices=["dry-run", "backup", "execute", "backup-execute"])
     parser.add_argument("--oc",   default=None,
-                        help="Nombre de una OC especifica (opcional): 'prueba 1', 'prueba 2' o 'prueba 3'")
+                        help="Nombre de una OC especifica, o 'all' para procesar todas las del registro")
+    parser.add_argument("--all-registro", action="store_true",
+                        help="Procesar todas las OCs del registro_nombres_OCs.txt")
     args = parser.parse_args()
+
+    oc_filter = "--all" if args.all_registro else args.oc
 
     config = load_config()
     gc     = GraphClient()
 
     if args.mode == "dry-run":
-        run_dry_run(gc, args.oc, config)
+        run_dry_run(gc, oc_filter, config)
     elif args.mode == "backup":
-        run_backup(gc, args.oc, config)
+        run_backup(gc, oc_filter, config)
     elif args.mode == "execute":
-        run_execute(gc, args.oc, config)
+        run_execute(gc, oc_filter, config)
     elif args.mode == "backup-execute":
-        bf = run_backup(gc, args.oc, config)
-        run_execute(gc, args.oc, config, backup_file=bf)
+        bf = run_backup(gc, oc_filter, config)
+        run_execute(gc, oc_filter, config, backup_file=bf)
 
 
 if __name__ == "__main__":

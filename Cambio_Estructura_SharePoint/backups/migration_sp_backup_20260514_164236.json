@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-05-14T22:42:36.418214+00:00",
+  "ocs": {
+    "cmer-OC-00180716-ALIICOC": {
+      "1. CONTROL PROCESO": [],
+      "2. CONTRATO OC MADRE": [
+        "cmer-OC-00180716-ASPP000.pdf"
+      ],
+      "3. FLETE INTERNACIONAL": [],
+      "3.02 Orden de compra Flete internacional": [
+        "cmer-OC-00208597-MSC000.pdf",
+        "cmer-OC-00208597-MSC000_v2.pdf",
+        "cmer-OC-00208598-ASPP000.pdf"
+      ],
+      "4. DOCUMENTACION": [],
+      "5. DESALMACENAJE": [],
+      "6. COSTEO": [],
+      "6.0 ALMACEN FISCAL": [],
+      "7. TRANSPORTE TERRESTRE": [],
+      "8. PAGOS": [],
+      "9. RECLAMOS": [],
+      "9.2 RECLAMOS": [],
+      "9.3 Reclamos": [],
+      "Contrato de Proveedor": [
+        "cmer-OC-00180716-ALIICOC.pdf",
+        "cmer-OC-00180716-ALIICOC_v2.pdf",
+        "cmer-OC-00180716-ALIICOC_v3.pdf"
+      ],
+      "Costeo": [],
+      "Desalmacenaje": [],
+      "Documentación": [],
+      "Flete Internacional": [],
+      "TIRS": []
+    }
+  }
+}

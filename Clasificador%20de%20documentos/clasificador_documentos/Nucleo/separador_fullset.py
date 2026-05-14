@@ -44,17 +44,37 @@ Tipos de documentos que puedes encontrar (úsalos EXACTAMENTE como aparecen aqu�
 - FITOSANITARIO → Certificado Fitosanitario / Phytosanitary Certificate / Plant Health Certificate
 - ZOOSANITARIO → Certificado Zoosanitario / Veterinary Certificate / Animal Health Certificate
 - HEALTH CERTIFICATE → Certificado de Salud / Health Certificate / Sanitary Certificate / Certificate of Sanitary Inspection / Official Health Attestation — para productos alimenticios, cárnicos, lácteos, pesqueros o cualquier producto de origen animal que requiera inspección sanitaria
-- WEIGHT CERTIFICATE → Certificado de Peso / Weight Certificate
-- QUALITY CERTIFICATE → Certificado de Calidad / Quality Certificate / Certificate of Analysis
-- OTROS       → SOLO si el documento NO encaja en ninguno de los anteriores
+- WEIGHT CERTIFICATE → Certificado de Peso / Weight Certificate / Weight and Quality Certificate / Inspection Certificate emitido por empresa de surveying (ej: General Survey, SGS, Bureau Veritas)
+- QUALITY CERTIFICATE → Certificado de Calidad / Quality Certificate / Certificate of Analysis / Analysis Report / Reporte de Análisis de Laboratorio
+- FUMIGATION CERTIFICATE → Certificado de Fumigación / Fumigation Certificate — documento que certifica tratamiento de fumigación (fosfuro de aluminio, metil bromuro, etc.) aplicado a la carga
+- OTROS       → SOLO si el documento NO encaja en ninguno de los anteriores (ej: carta explicativa del proveedor, carta de crédito, seguro, instrucciones de embarque)
 
-IMPORTANTE — Guía para distinguir certificados sanitarios:
+IMPORTANTE — Guía para distinguir tipos similares:
 - Si menciona "phytosanitary", "plant health", "plantas", "vegetales", "semillas", "frutas", "granos" → FITOSANITARIO
 - Si menciona "veterinary", "animal health", "zoosanitario", "ganado", "carne", "aves", "pesca" → ZOOSANITARIO
 - Si menciona "health certificate", "sanitary certificate", "certificate of health", "inspección sanitaria",
   "food safety", "hygiene", "apto para consumo humano", "human consumption" → HEALTH CERTIFICATE
 - Si menciona "certificate of origin", "origen", "preferential", "Form A", "GSP", "EUR.1" → CO
-- USA "OTROS" SOLO si el documento es genuinamente inclasificable (ej: carta de crédito, seguro, etc.)
+- Si menciona "fumigation", "fumigación", "fumigant", "aluminium phosphide", "methyl bromide",
+  "fosfuro de aluminio", "bromuro de metilo", "fumigado", "disinfestation" → FUMIGATION CERTIFICATE
+- Si menciona "weight certificate", "weight and quality", "weight & quality", "surveyor", "inspection co.",
+  "tally", "superintendent", "GAFTA", "FOSFA", "General Survey", "SGS", "Bureau Veritas", "Cotecna"
+  en el contexto de verificar peso o calidad de la carga → WEIGHT CERTIFICATE
+- Si menciona "analysis report", "certificate of analysis", "alveograph", "farinograph", "extensograph",
+  "rheology", "protein", "moisture", "ash", "gluten", "wet gluten", "quality report" → QUALITY CERTIFICATE
+- USA "OTROS" SOLO si el documento es genuinamente inclasificable
+
+IMPORTANTE — Reglas para QUALITY CERTIFICATE con reportes de laboratorio:
+Los proveedores de materias primas (harinas, cereales, etc.) suelen incluir múltiples reportes de
+laboratorio en un mismo full set: Analysis Report, Certificate of Analysis, Alveograph, Farinograph,
+Extensograph, etc. Cada uno de estos es un documento independiente con su propio formulario y emisor.
+REGLA CRÍTICA: agrupa en un SOLO QUALITY CERTIFICATE únicamente las páginas que sean continuación
+directa del mismo formulario (ej: página 1/2 y 2/2 del mismo reporte). Si cambia el tipo de ensayo,
+el formulario, el emisor o el número de muestra/lote, ES UN NUEVO QUALITY CERTIFICATE independiente.
+Ejemplos de cortes dentro de "calidad":
+- Analysis Report (Eris) → Certificate of Analysis (Eris) → Alveograph (Chopin) → Farinograph (Brabender)
+  → Extensograph (Brabender) → cada uno es un QUALITY CERTIFICATE distinto aunque sean de la misma carga.
+- Un Fumigation Certificate es SIEMPRE independiente del FITOSANITARIO, aunque ambos mencionen fumigación.
 
 Reglas para identificar cortes entre documentos:
 1. Cambio de tipo de documento (ej: de BL a INVOICE, de CO a FITOSANITARIO) → SIEMPRE es un corte.
@@ -62,7 +82,8 @@ Reglas para identificar cortes entre documentos:
 3. Cambio de emisor o de estructura de formulario
 4. CADA TIPO DE DOCUMENTO ES SIEMPRE INDEPENDIENTE — Una INVOICE es solo la factura. Un CO es
    solo el certificado de origen. Un PACKING LIST es solo la lista de empaque. Un BL es solo el
-   conocimiento de embarque. Ningún documento puede "contener" páginas de otro tipo distinto.
+   conocimiento de embarque. Un FUMIGATION CERTIFICATE es solo el certificado de fumigación.
+   Ningún documento puede "contener" páginas de otro tipo distinto.
    Compartir número de PO, número de contenedor, número de factura, nombre de shipper u cualquier
    otro dato NO convierte un documento en anexo de otro — cada tipo se separa siempre.
 5. PÁGINAS CONTINUAS DEL MISMO FORMULARIO — Las únicas páginas que se agrupan con un documento
@@ -78,12 +99,17 @@ Reglas para identificar cortes entre documentos:
    NUNCA pongas la misma página en dos documentos distintos.
 7. Verifica que la suma de todas las páginas asignadas = número total de páginas del PDF (sin huecos)
 8. Un BL/MBL/HBL/AWB es SIEMPRE un documento independiente. Un CO es SIEMPRE un documento
-   independiente. Ninguno puede ser anexo de otro tipo bajo ninguna circunstancia.
+   independiente. Un FUMIGATION CERTIFICATE es SIEMPRE independiente. Ninguno puede ser anexo
+   de otro tipo bajo ninguna circunstancia.
 9. LÍMITE DE PÁGINAS POR TIPO — Si el PDF tiene muchas páginas, es casi seguro un full set:
    - Un CO/Certificate of Origin raramente excede 3 páginas. Si ves más de 3 páginas con aspecto
      de CO, es muy probable que sean COs distintos o documentos de tipos diferentes concatenados.
    - Una INVOICE raramente excede 5 páginas. Un PACKING LIST raramente excede 8 páginas.
    - Un BL/AWB raramente excede 4 páginas (incluyendo términos y condiciones al dorso).
+   - Un FUMIGATION CERTIFICATE raramente excede 2 páginas.
+   - Un QUALITY CERTIFICATE individual (Analysis Report, Alveograph, Farinograph, Extensograph)
+     raramente excede 2 páginas. Si hay más de 2 páginas de "calidad", es casi seguro que son
+     varios reportes distintos concatenados — busca cortes entre ellos.
    - Si el PDF supera las 10 páginas en total, sé ESPECIALMENTE escrupuloso en buscar cortes.
      Con 10+ páginas es estadísticamente improbable que sea un solo documento.
 10. MISMO TIPO, DISTINTOS DOCUMENTOS — Que dos páginas sean del mismo tipo NO significa que sean
@@ -125,7 +151,7 @@ Si el PDF contiene MÚLTIPLES documentos:
 
 Reglas del JSON:
 - "paginas" son números enteros empezando en 1 (no en 0)
-- "tipo" debe ser exactamente uno de los tipos listados arriba (BL, MBL, HBL, AWB, INVOICE, PACKING LIST, CO, FITOSANITARIO, ZOOSANITARIO, HEALTH CERTIFICATE, WEIGHT CERTIFICATE, QUALITY CERTIFICATE, OTROS)
+- "tipo" debe ser exactamente uno de los tipos listados arriba (BL, MBL, HBL, AWB, INVOICE, PACKING LIST, CO, FITOSANITARIO, ZOOSANITARIO, HEALTH CERTIFICATE, WEIGHT CERTIFICATE, QUALITY CERTIFICATE, FUMIGATION CERTIFICATE, OTROS)
 - "referencia" es el número principal del documento (BL number, invoice number, cert number, etc.) — usa "" si no aparece
 - "descripcion" es una frase corta y descriptiva del contenido real
 - Los rangos de páginas deben cubrir TODAS las páginas del PDF sin solapamientos ni huecos\
@@ -310,6 +336,26 @@ def _detectar_segmentos_con_claude(
     if pdf_b64 is None:
         return None
 
+    # Ajustar el texto del mensaje según el número de páginas: si hay 3+ páginas sin
+    # indicador en el nombre, ser más explícito con Claude para que revise con cuidado.
+    _pags_str = str(num_paginas) if num_paginas else "desconocido"
+    if num_paginas and num_paginas >= 3:
+        _pregunta_usuario = (
+            f"Archivo: {nombre_archivo}\n"
+            f"Total de páginas del PDF: {_pags_str}\n\n"
+            f"ATENCIÓN: Este PDF tiene {_pags_str} páginas. En documentos de comercio exterior "
+            f"es muy frecuente que los proveedores concatenen varios documentos en un solo PDF "
+            f"(BL, Invoice, Packing List, Certificados, etc.). El nombre del archivo puede ser "
+            f"genérico y no indicar que sea un full set.\n"
+            f"Revisa CADA PÁGINA con cuidado. ¿Este PDF contiene un solo documento o varios documentos concatenados?"
+        )
+    else:
+        _pregunta_usuario = (
+            f"Archivo: {nombre_archivo}\n"
+            f"Total de páginas del PDF: {_pags_str}\n\n"
+            f"¿Este PDF contiene un solo documento o varios documentos concatenados?"
+        )
+
     try:
         respuesta = _llamar_api(
             client,
@@ -329,11 +375,7 @@ def _detectar_segmentos_con_claude(
                     },
                     {
                         "type": "text",
-                        "text": (
-                            f"Archivo: {nombre_archivo}\n"
-                            f"Total de páginas del PDF: {num_paginas if num_paginas else 'desconocido'}\n\n"
-                            f"¿Este PDF contiene un solo documento o varios documentos concatenados?"
-                        ),
+                        "text": _pregunta_usuario,
                     },
                 ],
             }],
@@ -653,7 +695,18 @@ def separar_fullset(
     except Exception:
         pass  # Si falla, dejamos que Claude decida
 
-    print(f"  [FULLSET] Analizando: {nombre_archivo}" + (f" ({num_paginas} pags.)" if num_paginas else ""))
+    # Detectar si el nombre indica explícitamente que es un full set.
+    # Patrones: "FULL SET", "FULLSET", o el nombre termina en " SET" (ej: "12194 Set.pdf")
+    _nombre_upper = nombre_archivo.upper()
+    _stem_upper   = Path(nombre_archivo).stem.upper()
+    _es_fullset_por_nombre = (
+        "FULL SET" in _nombre_upper
+        or "FULLSET" in _nombre_upper
+        or _stem_upper.endswith(" SET")
+    )
+
+    print(f"  [FULLSET] Analizando: {nombre_archivo}" + (f" ({num_paginas} pags.)" if num_paginas else "")
+          + (" [nombre indica FULL SET]" if _es_fullset_por_nombre else ""))
 
     if num_paginas == 1:
         if doc_fitz:
@@ -661,19 +714,50 @@ def separar_fullset(
         print(f"  [FULLSET] 1 sola pagina — no es full set")
         return None
 
-    # Enviar el PDF completo a Claude para detección
-    resultado = _detectar_segmentos_con_claude(ruta_pdf, nombre_archivo, num_paginas, doc_fitz)
+    # Enviar el PDF completo a Claude para detección.
+    # - Nombre indica FULL SET → 3 intentos (Claude puede dudar en expedientes complejos).
+    # - PDF de 3+ páginas sin indicador de nombre → 2 intentos: un solo intento no es suficiente
+    #   para descartar un full set cuando hay varias páginas.
+    # - PDF de 2 páginas sin indicador → 1 intento (un BL de 2 págs. es el caso más común).
+    if _es_fullset_por_nombre:
+        _max_intentos = 3
+    elif num_paginas and num_paginas >= 3:
+        _max_intentos = 2
+    else:
+        _max_intentos = 1
+
+    resultado = None
+    for _intento in range(1, _max_intentos + 1):
+        if _intento > 1:
+            _razon_reintento = "nombre indica FULL SET" if _es_fullset_por_nombre else f"PDF de {num_paginas} pags."
+            print(f"  [FULLSET] Reintento {_intento}/{_max_intentos} ({_razon_reintento})...")
+        resultado = _detectar_segmentos_con_claude(ruta_pdf, nombre_archivo, num_paginas, doc_fitz)
+        if resultado is not None and resultado.get("es_fullset", False):
+            break  # Detectado correctamente — no reintentar
+        if resultado is not None and not resultado.get("es_fullset", False) and _max_intentos == 1:
+            break  # PDF de 2 páginas sin indicador: confiar en el primer intento
+
     if resultado is None:
         if doc_fitz:
             doc_fitz.close()
-        print(f"  [FULLSET] Claude no respondió — procesando como documento único")
+        if _es_fullset_por_nombre:
+            log_advertencia("separador_fullset", "FULL-004", nombre_archivo,
+                            "Claude no respondió tras múltiples intentos — el nombre indica FULL SET, revisar manualmente")
+            print(f"  [FULLSET] ADVERTENCIA: nombre indica FULL SET pero Claude no respondió — procesando como documento único, revisar manualmente")
+        else:
+            print(f"  [FULLSET] Claude no respondió — procesando como documento único")
         return None
 
     if not resultado.get("es_fullset", False):
         if doc_fitz:
             doc_fitz.close()
         razon = resultado.get("razon", "")
-        print(f"  [FULLSET] Documento único detectado. Razón: {razon}")
+        if _es_fullset_por_nombre:
+            log_advertencia("separador_fullset", "FULL-005", nombre_archivo,
+                            f"Nombre indica FULL SET pero Claude no detectó múltiples documentos tras {_max_intentos} intento(s) — revisar manualmente. Razón: {razon}")
+            print(f"  [FULLSET] ADVERTENCIA: nombre indica FULL SET pero Claude no detectó separaciones tras {_max_intentos} intento(s) — revisar manualmente")
+        else:
+            print(f"  [FULLSET] Documento único detectado. Razón: {razon}")
         return None
 
     # 3. Es un full set — obtener los segmentos

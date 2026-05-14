@@ -1,0 +1,160 @@
+"""
+Migra los archivos subidos por error a cmer-OC-00002602 que pertenecen
+a la OC-00201837-TUL000-C.
+
+El clasificador tomó "2602" del asunto/nombre del correo en lugar de "201837"
+que es el PO real que aparece en los documentos.
+
+Detectados en registros_subidas.log líneas 1237-1246 (2026-05-09 13:24:xx,
+aux23.gg@grupointeca.com).
+
+Uso:
+    cd clasificador_documentos
+    python Pruebas/migrar_2602_a_201837.py
+    python Pruebas/migrar_2602_a_201837.py --dry-run
+"""
+
+import sys
+import time
+import argparse
+from pathlib import Path
+from urllib.parse import quote
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from configuracion.ajustes import SHAREPOINT_DRIVE_ID, SHAREPOINT_CARPETA_OCS
+from Integraciones.graph_client import GraphClient
+
+_GRAPH_BASE = "https://graph.microsoft.com/v1.0"
+
+OC_ORIGEN  = "cmer-OC-00002602"
+OC_DESTINO = "cmer-OC-00201837"   # buscar_carpeta_oc resolverá el sufijo real (-TUL000-C)
+
+# (subcarpeta_origen, nombre_archivo, subcarpeta_destino)
+MIGRACIONES = [
+    ("OTROS",                                    "adj_312hdt8e_01_OTROS_MEDUKC503589.pdf",              "OTROS"),
+    ("4.02 Factura Definitiva",                  "adj_312hdt8e_02_INVOICE_GI2602201837.pdf",            "4.02 Factura Definitiva"),
+    ("4.27 Packing list definitivo",             "adj_312hdt8e_03_PACKING LIST_GI2602201837.pdf",       "4.27 Packing list definitivo"),
+    ("4.18 Certifi Zoos Origen",                 "adj_312hdt8e_04_HEALTH CERTIFICATE_MFDSFID-2026026749.pdf", "4.18 Certifi Zoos Origen"),
+    ("OTROS",                                    "adj_312hdt8e_05_OTROS.pdf",                           "OTROS"),
+    ("OTROS",                                    "adj_312hdt8e_06_QUALITY CERTIFICATE_GOP-61.pdf",      "OTROS"),
+    ("OTROS",                                    "adj_312hdt8e_07_OTROS.pdf",                           "OTROS"),
+    ("OTROS",                                    "adj_312hdt8e_08_WEIGHT CERTIFICATE_201837.pdf",       "OTROS"),
+    ("OTROS",                                    "adj_312hdt8e_09_OTROS_201837.pdf",                    "OTROS"),
+    ("4.03 Borr BL oAWB o Porte",               "GI#2602(201837)_MEDUKC503589_DRAFT_BL.PDF",           "4.03 Borr BL oAWB o Porte"),
+]
+
+
+def _item_id_por_ruta(gc: GraphClient, ruta: str) -> str | None:
+    ruta_enc = quote(ruta, safe="/")
+    url = f"{_GRAPH_BASE}/drives/{SHAREPOINT_DRIVE_ID}/root:/{ruta_enc}:"
+    try:
+        data = gc._get(url)
+        return data.get("id")
+    except Exception as e:
+        print(f"  [ERROR] No encontrado en SharePoint: {ruta}\n         {e}")
+        return None
+
+
+def _parent_id_por_ruta(gc: GraphClient, ruta_carpeta: str, dry_run: bool) -> str | None:
+    ruta_enc = quote(ruta_carpeta, safe="/")
+    url = f"{_GRAPH_BASE}/drives/{SHAREPOINT_DRIVE_ID}/root:/{ruta_enc}:"
+    try:
+        data = gc._get(url)
+        return data.get("id")
+    except Exception:
+        if dry_run:
+            print(f"  [DRY-RUN] Carpeta destino no existe (se crearía): {ruta_carpeta}")
+            return "DRY_RUN_ID"
+        print(f"  [INFO] Carpeta destino no existe, creándola: {ruta_carpeta}")
+        gc.crear_carpeta_si_no_existe(ruta_carpeta + "/placeholder")
+        time.sleep(1)
+        try:
+            data = gc._get(url)
+            return data.get("id")
+        except Exception as e:
+            print(f"  [ERROR] No se pudo crear la carpeta destino: {e}")
+            return None
+
+
+def mover_archivo(gc: GraphClient, item_id: str, parent_id: str, nombre: str):
+    gc._renovar_token_si_necesario()
+    url = f"{_GRAPH_BASE}/drives/{SHAREPOINT_DRIVE_ID}/items/{item_id}"
+    payload = {"parentReference": {"id": parent_id}, "name": nombre}
+    r = gc.session.patch(url, headers=gc._headers, json=payload, timeout=30)
+    if not r.ok:
+        raise RuntimeError(f"PATCH {r.status_code}: {r.text[:300]}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Migra archivos de OC-00002602 a OC-00201837-TUL000-C")
+    parser.add_argument("--dry-run", action="store_true", help="Simula sin hacer cambios")
+    args = parser.parse_args()
+
+    print("=" * 60)
+    print("Migración OC-00002602 → OC-00201837-TUL000-C")
+    if args.dry_run:
+        print("MODO DRY-RUN — no se realizarán cambios")
+    print("=" * 60)
+
+    gc = GraphClient()
+
+    carpeta_destino_real = gc.buscar_carpeta_oc(f"cmer-OC-{OC_DESTINO.split('-OC-')[1][:8]}")
+    if carpeta_destino_real == f"cmer-OC-{OC_DESTINO.split('-OC-')[1][:8]}":
+        # buscar_carpeta_oc devuelve el mismo valor si no encontró — intentar con el nombre completo
+        carpeta_destino_real = gc.buscar_carpeta_oc("cmer-OC-00201837")
+    print(f"Carpeta destino: {carpeta_destino_real}\n")
+
+    exitos = 0
+    errores = 0
+
+    for subcarpeta_origen, nombre_archivo, subcarpeta_destino in MIGRACIONES:
+        ruta_origen = (
+            f"{SHAREPOINT_CARPETA_OCS}/{OC_ORIGEN}"
+            f"/4. DOCUMENTACION/{subcarpeta_origen}/{nombre_archivo}"
+        )
+        ruta_carpeta_destino = (
+            f"{SHAREPOINT_CARPETA_OCS}/{carpeta_destino_real}"
+            f"/4. DOCUMENTACION/{subcarpeta_destino}"
+        )
+
+        print(f"Archivo : {nombre_archivo}")
+        print(f"  Origen : .../{OC_ORIGEN}/4. DOCUMENTACION/{subcarpeta_origen}/")
+        print(f"  Destino: .../{carpeta_destino_real}/4. DOCUMENTACION/{subcarpeta_destino}/")
+
+        if args.dry_run:
+            print(f"  [DRY-RUN] Se movería correctamente.")
+            exitos += 1
+            print()
+            continue
+
+        item_id = _item_id_por_ruta(gc, ruta_origen)
+        if not item_id:
+            errores += 1
+            print()
+            continue
+
+        parent_id = _parent_id_por_ruta(gc, ruta_carpeta_destino, dry_run=False)
+        if not parent_id:
+            errores += 1
+            print()
+            continue
+
+        try:
+            mover_archivo(gc, item_id, parent_id, nombre_archivo)
+            print(f"  [OK] Movido correctamente.")
+            exitos += 1
+        except Exception as e:
+            print(f"  [ERROR] {e}")
+            errores += 1
+
+        print()
+        time.sleep(0.3)
+
+    print("=" * 60)
+    print(f"Resultado: {exitos} movidos, {errores} errores.")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()

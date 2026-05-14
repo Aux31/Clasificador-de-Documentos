@@ -26,6 +26,7 @@ import tempfile
 import threading
 import urllib3
 import pythoncom
+import pywintypes
 import win32com.client
 from datetime import datetime
 
@@ -42,7 +43,8 @@ from Nucleo.recopilador_documentos import _expandir_zip, _expandir_rar
 # ---------------------------------------------------------------------------
 # Logger de subidas a SharePoint
 # ---------------------------------------------------------------------------
-_LOG_SUBIDAS = Path(__file__).parent.parent / "registros_subidas.log"
+_LOG_SUBIDAS       = Path(__file__).parent.parent / "registros_subidas.log"
+_CONTADOR_CORREOS  = Path(__file__).parent.parent / "contador_correos.txt"
 
 # ---------------------------------------------------------------------------
 # Logger de inconsistencias y sugerencias de respuesta
@@ -128,12 +130,22 @@ def _siguiente_consecutivo() -> int:
     return len([l for l in lines if l.strip()]) + 1
 
 
-def _log_subida(remitente: str, ruta_sharepoint: str):
-    """Registra una subida en el formato: N | timestamp | correo | ruta_completa"""
+def _siguiente_id_correo() -> int:
+    """Devuelve el próximo ID único de correo e incrementa el contador."""
+    if not _CONTADOR_CORREOS.exists():
+        _CONTADOR_CORREOS.write_text("0", encoding="utf-8")
+    n = int(_CONTADOR_CORREOS.read_text(encoding="utf-8").strip() or "0") + 1
+    _CONTADOR_CORREOS.write_text(str(n), encoding="utf-8")
+    return n
+
+
+def _log_subida(remitente: str, ruta_sharepoint: str, id_correo: int = 0, asunto: str = ""):
+    """Registra una subida en el formato: N | REFERENCE:ID | timestamp | correo | asunto | ruta"""
     ruta_completa = ruta_sharepoint.replace("\\", "/")
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     n  = _siguiente_consecutivo()
-    _logger_subidas.info(f"{n} | {ts} | {remitente} | {ruta_completa}")
+    asunto_limpio = (asunto or "").replace("\n", " ").replace("\r", "").strip()
+    _logger_subidas.info(f"{n} | GINT{id_correo:05d}Z | {ts} | {remitente} | {asunto_limpio} | {ruta_completa}")
 import sys as _sys
 from pathlib import Path as _Path
 _sys.path.insert(0, str(_Path(__file__).resolve().parent.parent.parent / "Agente_Seguridad"))
@@ -287,6 +299,7 @@ def _procesar_mensaje(msg, cliente: GraphClient, rutas_subidas: set | None = Non
         asunto    = msg.Subject or ""
         remitente = msg.SenderEmailAddress or ""
         msg_id    = msg.EntryID
+        id_correo = _siguiente_id_correo()
         try:
             received_time    = msg.ReceivedTime.replace(tzinfo=None)
             fecha_str        = received_time.strftime("%Y-%m-%d %H:%M")
@@ -449,7 +462,7 @@ def _procesar_mensaje(msg, cliente: GraphClient, rutas_subidas: set | None = Non
                         cliente.crear_carpeta_si_no_existe(ruta_real)
                         ruta_archivo_subir = info.get("ruta_local") or adj_interno["ruta_local"]
                         cliente.subir_archivo(ruta_archivo_subir, ruta_real)
-                        _log_subida(remitente, ruta_real)
+                        _log_subida(remitente, ruta_real, id_correo=id_correo, asunto=asunto)
                         if rutas_subidas is not None:
                             rutas_subidas.add(ruta_real_norm)
                         archivos_subidos.append(info["tipo"])
@@ -490,6 +503,34 @@ def _procesar_mensaje(msg, cliente: GraphClient, rutas_subidas: set | None = Non
         if n_adjuntos_reales == 0 and msg.Attachments.Count > 0:
             log_evento("BASURA", "monitor_correos", remitente=remitente, asunto=asunto,
                        detalle=f"todos los adjuntos ({msg.Attachments.Count}) son imágenes inline o extensión bloqueada")
+
+        # Insertar etiqueta única en el cuerpo del correo para búsqueda en Outlook
+        if resultado["rutas_subidas"]:
+            try:
+                etiqueta_id = f"GINT{id_correo:05d}Z"
+                # Cuerpo HTML — insertar antes de </body> o al final si no hay tag
+                try:
+                    html_actual = msg.HTMLBody or ""
+                    if etiqueta_id not in html_actual:
+                        bloque_html = f'<div style="color:#ffffff;font-size:1px;mso-hide:all">{etiqueta_id}</div>'
+                        if "</body>" in html_actual.lower():
+                            idx = html_actual.lower().rfind("</body>")
+                            html_actual = html_actual[:idx] + bloque_html + html_actual[idx:]
+                        else:
+                            html_actual = html_actual + bloque_html
+                        msg.HTMLBody = html_actual
+                except Exception:
+                    pass
+                # Cuerpo texto plano — agregar al final como fallback
+                try:
+                    body_actual = msg.Body or ""
+                    if etiqueta_id not in body_actual:
+                        msg.Body = body_actual + f"\n\n{etiqueta_id}"
+                except Exception:
+                    pass
+                msg.Save()
+            except Exception as e:
+                log_advertencia("monitor_correos", "MON-007", detalle=f"No se pudo etiquetar cuerpo: {e}")
 
         # Marcar correo como procesado (EntryID + clave secundaria + fecha para criterio de corte)
         _marcar_procesado(msg_id, clave_secundaria, received_time)
@@ -585,12 +626,31 @@ def main():
         outlook = None
         for intento in range(1, 6):
             try:
-                outlook = win32com.client.gencache.EnsureDispatch("Outlook.Application")
+                # Usar Dispatch en lugar de gencache.EnsureDispatch para evitar
+                # errores de caché corrupto (CLSIDToPackageMap AttributeError).
+                outlook = win32com.client.Dispatch("Outlook.Application")
                 break
             except Exception as e:
                 codigo = getattr(e, 'hresult', None)
                 if intento == 1:
                     print(f"[Outlook] Conectando... (intento {intento}/5)")
+                    # Limpiar caché de gen_py si está corrupto
+                    try:
+                        import shutil, os
+                        gen_py_path = os.path.join(
+                            os.environ.get("LOCALAPPDATA", ""),
+                            "Temp", "gen_py"
+                        )
+                        if os.path.isdir(gen_py_path):
+                            shutil.rmtree(gen_py_path, ignore_errors=True)
+                        # También limpiar en site-packages
+                        import win32com
+                        gp = os.path.join(os.path.dirname(win32com.__file__), "gen_py")
+                        if os.path.isdir(gp):
+                            shutil.rmtree(gp, ignore_errors=True)
+                            os.makedirs(gp, exist_ok=True)
+                    except Exception:
+                        pass
                 else:
                     print(f"[Outlook] Reintentando conexión COM... (intento {intento}/5)")
                 if intento == 3:
@@ -647,11 +707,62 @@ def main():
         else:
             print(f"[Monitor] Escaneo inicial — recorriendo bandeja completa ({items_bandeja.Count} elementos)")
 
+        def _reconectar_bandeja():
+            """Reconecta a Outlook y devuelve items_bandeja ordenado, o None si falla."""
+            time.sleep(3)
+            try:
+                ol = win32com.client.gencache.EnsureDispatch("Outlook.Application")
+                ns = ol.GetNamespace("MAPI")
+                bnd = None
+                for store in ns.Stores:
+                    try:
+                        if OUTLOOK_EMAIL.lower() in store.DisplayName.lower():
+                            bnd = store.GetDefaultFolder(6)
+                            break
+                    except Exception:
+                        continue
+                if bnd is None:
+                    return None, None, None
+                items = bnd.Items
+                items.Sort("[ReceivedTime]", True)
+                return ol, bnd, items
+            except Exception as e:
+                print(f"[Monitor] No se pudo reconectar a Outlook: {e}")
+                return None, None, None
+
         resumen_rutas   = []
         resumen_errores = []
         n_inicial  = 0
         n_saltados = 0
-        for item in items_bandeja:
+        _idx_bandeja = 1
+        while True:
+            # Obtener Count con posible reconexión
+            try:
+                _total = items_bandeja.Count
+            except pywintypes.com_error:
+                print(f"[Monitor] Conexión COM perdida en Count — reconectando...")
+                outlook, bandeja, items_bandeja = _reconectar_bandeja()
+                if items_bandeja is None:
+                    break
+                print(f"[Monitor] Reconexión COM exitosa — retomando desde elemento {_idx_bandeja}")
+                continue
+            if _idx_bandeja > _total:
+                break
+
+            # Obtener ítem con posible reconexión
+            try:
+                item = items_bandeja[_idx_bandeja]
+            except IndexError:
+                # La colección cambió de tamaño mientras se iteraba (correo movido/eliminado)
+                break
+            except pywintypes.com_error:
+                print(f"[Monitor] Conexión COM perdida en ítem {_idx_bandeja} — reconectando...")
+                outlook, bandeja, items_bandeja = _reconectar_bandeja()
+                if items_bandeja is None:
+                    break
+                print(f"[Monitor] Reconexión COM exitosa — retomando desde elemento {_idx_bandeja}")
+                continue
+            _idx_bandeja += 1
             try:
                 if item.Class != 43:
                     continue

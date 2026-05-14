@@ -152,8 +152,8 @@ Recibirás el documento adjunto directamente (imagen o PDF) junto con:
 
 Determina a qué tipo corresponde el documento. Los tipos válidos son exactamente estos:
 MBL, HBL, BL, AWB, INVOICE, PACKING LIST, PL + INV, CO, WEIGHT CERTIFICATE,
-QUALITY CERTIFICATE, FITOSANITARIO, ZOOSANITARIO, FOB LETTER, PRINTER, EXONERACION,
-MARCHAMO, OTROS.
+QUALITY CERTIFICATE, FUMIGATION CERTIFICATE, FITOSANITARIO, ZOOSANITARIO, FOB LETTER,
+PRINTER, EXONERACION, MARCHAMO, OTROS.
 
 Para identificar el tipo, usa el siguiente checklist de campos que debe contener cada documento.
 Si el documento contiene la mayoría de los campos listados para un tipo, clasifícalo como ese tipo.
@@ -192,6 +192,14 @@ Reglas:
     - Export Statement: resumen de exportación emitido por el proveedor, no es una factura ni un BL.
     - SOA / Statement of Account: igual que Account Statement → OTROS.
     - Request for Payment / Solicitud de Pago: comunicación de cobro del proveedor, no es una factura comercial.
+    - Health Certificate / Certificado de Salud / Sanitary Certificate / Certificado Sanitario /
+      Certificate of Health / Health and Sanitary Certificate: certificado que acredita que la mercancía
+      cumple requisitos sanitarios o de salud pública. NO es un Certificate of Origin (CO) aunque tenga
+      estructura similar o mencione el país de origen. Siempre → OTROS.
+- IMPORTANTE: "CO" (Certificate of Origin) acredita el PAÍS DE FABRICACIÓN para fines aduanales o
+  arancelarios. Un certificado sanitario o de salud acredita que el producto es APTO PARA CONSUMO o
+  cumple normas de salud — son documentos distintos aunque ambos sean "certificados". Si el documento
+  dice "Health Certificate", "Sanitary Certificate", "Certificate of Health" o similar, usa "OTROS".
 - "nombre_proveedor": nombre de la empresa que emitió el documento (shipper, exporter, seller o equivalente).
   Si el documento es emitido por una naviera o agente de carga, usa el nombre del shipper.
   Si no se puede determinar con certeza, usa "".
@@ -203,6 +211,11 @@ Reglas:
   confirmar visualmente la presencia de un sello, estampilla o sello húmedo de la autoridad emisora
   (cámara de comercio, aduana, organismo gubernamental, etc.) en el documento. La duda siempre va a true.
   IMPORTANTE: el asunto del correo NO debe influir en este campo — evalúa únicamente el contenido del documento.
+  ADVERTENCIA ESPECIAL: algunos proveedores usan plantillas de correo donde el asunto siempre incluye
+  frases como "DRAFT DOCUMENT FOR [EMPRESA] SALES CONTRACT" o "DRAFT INVOICE" aunque el documento adjunto
+  sea la factura o el packing list definitivos. Si el documento adjunto NO tiene la palabra DRAFT, BORRADOR,
+  PRELIMINARY, SPECIMEN o NON-NEGOTIABLE impresa o estampada sobre el propio documento, responde false.
+  En caso de duda para facturas e INVOICE: prefiere false (definitivo).
 - "numero_po": si en el cuerpo del documento aparece un número de orden de compra (Purchase Order, PO, OC), extrae solo los dígitos. Si no aparece, usa null.\
 """
 
@@ -607,7 +620,8 @@ def clasificar_con_claude(
         justificacion    = str(datos.get("justificacion", "")).strip()
         nombre_proveedor = str(datos.get("nombre_proveedor", "")).strip()
         es_borrador      = bool(datos.get("es_borrador", False))
-        numero_po_claude = str(datos.get("numero_po") or "").strip() or None
+        _po_raw = re.sub(r'\D', '', str(datos.get("numero_po") or ""))
+        numero_po_claude = _po_raw or None
 
         if tipo not in TIPOS_VALIDOS:
             log_advertencia("clasificador_claude", "CLAUDE-002", nombre_archivo, f"Tipo desconocido en respuesta: '{tipo}'")

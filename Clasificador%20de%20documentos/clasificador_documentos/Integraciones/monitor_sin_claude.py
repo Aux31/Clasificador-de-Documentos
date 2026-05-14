@@ -107,7 +107,8 @@ def _clasificar_con_certeza(nombre_archivo: str, ruta_local: str = "") -> tuple[
 # ---------------------------------------------------------------------------
 # Loggers
 # ---------------------------------------------------------------------------
-_LOG_SUBIDAS    = Path(__file__).parent / "registros_subidas.log"
+_LOG_SUBIDAS       = Path(__file__).parent.parent / "registros_subidas.log"
+_CONTADOR_CORREOS  = Path(__file__).parent.parent / "contador_correos.txt"
 _DIR_REGISTROS  = Path(__file__).parent / "registros"
 _DIR_REGISTROS.mkdir(exist_ok=True)
 
@@ -126,11 +127,21 @@ def _siguiente_consecutivo() -> int:
     return len([l for l in lines if l.strip()]) + 1
 
 
-def _log_subida(remitente: str, ruta_sharepoint: str):
+def _siguiente_id_correo() -> int:
+    """Devuelve el próximo ID único de correo e incrementa el contador."""
+    if not _CONTADOR_CORREOS.exists():
+        _CONTADOR_CORREOS.write_text("0", encoding="utf-8")
+    n = int(_CONTADOR_CORREOS.read_text(encoding="utf-8").strip() or "0") + 1
+    _CONTADOR_CORREOS.write_text(str(n), encoding="utf-8")
+    return n
+
+
+def _log_subida(remitente: str, ruta_sharepoint: str, id_correo: int = 0, asunto: str = ""):
     ruta_completa = ruta_sharepoint.replace("\\", "/")
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     n  = _siguiente_consecutivo()
-    _logger_subidas.info(f"{n} | {ts} | {remitente} | {ruta_completa}")
+    asunto_limpio = (asunto or "").replace("\n", " ").replace("\r", "").strip()
+    _logger_subidas.info(f"{n} | GINT{id_correo:05d}Z | {ts} | {remitente} | {asunto_limpio} | {ruta_completa}")
 
 
 def _log_inconsistencias_txt(remitente: str, asunto: str, docs_con_inconsistencias: list[dict]):
@@ -239,6 +250,7 @@ def _procesar_mensaje(msg, cliente: GraphClient):
         asunto    = msg.Subject or ""
         remitente = msg.SenderEmailAddress or ""
         msg_id    = msg.EntryID
+        id_correo = _siguiente_id_correo()
 
         if msg.Attachments.Count == 0:
             print(f"\n[SKIP] Sin adjuntos: {asunto}")
@@ -402,7 +414,7 @@ def _procesar_mensaje(msg, cliente: GraphClient):
                     print(f"    -> {ruta_real}")
                     cliente.crear_carpeta_si_no_existe(ruta_real)
                     cliente.subir_archivo(tmp.name, ruta_real)
-                    _log_subida(remitente, ruta_real)
+                    _log_subida(remitente, ruta_real, id_correo=id_correo, asunto=asunto)
                     archivos_subidos.append(info["tipo"])
                     ultimo_info = {**info, "ruta_sharepoint": ruta_real}
 
@@ -436,6 +448,32 @@ def _procesar_mensaje(msg, cliente: GraphClient):
             print(f"\n  [INCONSISTENCIAS] {len(docs_con_inconsistencias)} problema(s) detectado(s) — registrado en log")
             _log_inconsistencias_txt(remitente, asunto, docs_con_inconsistencias)
             notificar_sugerencia(remitente, asunto, "(sin sugerencia — modo sin Claude)")
+
+        # Insertar ID único en el cuerpo del correo para búsqueda en Outlook
+        if archivos_subidos:
+            try:
+                etiqueta_id = f"GINT{id_correo:05d}Z"
+                try:
+                    html_actual = msg.HTMLBody or ""
+                    if etiqueta_id not in html_actual:
+                        bloque_html = f'<div style="color:#ffffff;font-size:1px;mso-hide:all">{etiqueta_id}</div>'
+                        if "</body>" in html_actual.lower():
+                            _idx = html_actual.lower().rfind("</body>")
+                            html_actual = html_actual[:_idx] + bloque_html + html_actual[_idx:]
+                        else:
+                            html_actual = html_actual + bloque_html
+                        msg.HTMLBody = html_actual
+                except Exception:
+                    pass
+                try:
+                    body_actual = msg.Body or ""
+                    if etiqueta_id not in body_actual:
+                        msg.Body = body_actual + f"\n\n{etiqueta_id}"
+                except Exception:
+                    pass
+                msg.Save()
+            except Exception as e:
+                log_advertencia("monitor_sin_claude", "MON-007", detalle=f"No se pudo etiquetar cuerpo: {e}")
 
         # Marcar como procesado
         _marcar_procesado(msg_id)

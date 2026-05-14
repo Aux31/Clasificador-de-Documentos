@@ -28,7 +28,8 @@ warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWar
 # ---------------------------------------------------------------------------
 # Logger de subidas a SharePoint
 # ---------------------------------------------------------------------------
-_LOG_SUBIDAS = Path(__file__).parent.parent / "registros_subidas.log"
+_LOG_SUBIDAS      = Path(__file__).parent.parent / "registros_subidas.log"
+_CONTADOR_CORREOS = Path(__file__).parent.parent / "contador_correos.txt"
 _LOG_SUBIDAS.parent.mkdir(parents=True, exist_ok=True)
 
 _logger_subidas = logging.getLogger("subidas_sharepoint")
@@ -103,16 +104,26 @@ def _extraer_empresa(nombre_remitente: str, email: str) -> str:
     return ""
 
 
+def _siguiente_id_correo() -> int:
+    """Devuelve el próximo ID único de correo e incrementa el contador."""
+    if not _CONTADOR_CORREOS.exists():
+        _CONTADOR_CORREOS.write_text("0", encoding="utf-8")
+    n = int(_CONTADOR_CORREOS.read_text(encoding="utf-8").strip() or "0") + 1
+    _CONTADOR_CORREOS.write_text(str(n), encoding="utf-8")
+    return n
+
+
 def _log_subida(remitente: str, ruta_sharepoint: str, ya_existia: bool = False,
-                nombre_remitente: str = "", proveedor: str = ""):
-    """Registra una subida en el formato: N | timestamp | correo | proveedor | ruta_completa [| YA_EXISTIA]"""
+                nombre_remitente: str = "", proveedor: str = "", id_correo: int = 0,
+                asunto: str = ""):
+    """Registra una subida en el formato: N | REFERENCE:ID | timestamp | correo | empresa | asunto | ruta [| YA_EXISTIA]"""
     ruta_completa = ruta_sharepoint.replace("\\", "/")
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     n  = _siguiente_consecutivo()
-    # Prioridad: nombre extraído del documento > SenderName de Outlook > dominio del email
     empresa = proveedor or _extraer_empresa(nombre_remitente, remitente)
     sufijo = " | YA_EXISTIA — omitida subida duplicada" if ya_existia else ""
-    _logger_subidas.info(f"{n} | {ts} | {remitente} | {empresa} | {ruta_completa}{sufijo}")
+    asunto_limpio = (asunto or "").replace("\n", " ").replace("\r", "").strip()
+    _logger_subidas.info(f"{n} | GINT{id_correo:05d}Z | {ts} | {remitente} | {empresa} | {asunto_limpio} | {ruta_completa}{sufijo}")
 
 import sys as _sys
 from pathlib import Path as _Path
@@ -459,6 +470,7 @@ def _ejecutar_ciclo_interno(max_correos: int = None, reprocesar: bool = False):
             asunto           = correo["asunto"]
             remitente        = correo["remitente"]
             nombre_remitente = correo.get("nombre_remitente", "")
+            id_correo        = _siguiente_id_correo()
 
             po_asunto, bl_asunto = extraer_po_y_bl_de_asunto(asunto)
             print(f"\nCorreo: {asunto} | De: {remitente}")
@@ -603,13 +615,15 @@ def _ejecutar_ciclo_interno(max_correos: int = None, reprocesar: bool = False):
                     _prov_log = proveedor_correo or proveedor_correo_fallback
                     if ya_subido:
                         _log_subida(remitente, ruta_real, ya_existia=True,
-                                    nombre_remitente=nombre_remitente, proveedor=_prov_log)
+                                    nombre_remitente=nombre_remitente, proveedor=_prov_log,
+                                    id_correo=id_correo, asunto=asunto)
                     else:
                         cliente.crear_carpeta_si_no_existe(ruta_real)
                         ruta_a_subir = info.get("ruta_local") or adjunto.get("ruta_local", nombre)
                         cliente.subir_archivo(ruta_a_subir, ruta_real)
                         _log_subida(remitente, ruta_real,
-                                    nombre_remitente=nombre_remitente, proveedor=_prov_log)
+                                    nombre_remitente=nombre_remitente, proveedor=_prov_log,
+                                    id_correo=id_correo, asunto=asunto)
                     archivos_subidos.append(info["tipo"])
                     ultimo_info = {**info, "ruta_sharepoint": ruta_real}
 
@@ -646,6 +660,35 @@ def _ejecutar_ciclo_interno(max_correos: int = None, reprocesar: bool = False):
                 )
 
             if archivos_subidos and ultimo_info:
+                # Insertar etiqueta única en el cuerpo del correo para búsqueda en Outlook
+                _msg_obj = correo.get("_msg_obj")
+                if _msg_obj:
+                    try:
+                        etiqueta_id = f"GINT{id_correo:05d}Z"
+                        # Cuerpo HTML — insertar antes de </body> o al inicio si no hay tag
+                        try:
+                            html_actual = _msg_obj.HTMLBody or ""
+                            if etiqueta_id not in html_actual:
+                                bloque_html = f'<div style="color:#ffffff;font-size:1px;mso-hide:all">{etiqueta_id}</div>'
+                                if "</body>" in html_actual.lower():
+                                    idx = html_actual.lower().rfind("</body>")
+                                    html_actual = html_actual[:idx] + bloque_html + html_actual[idx:]
+                                else:
+                                    html_actual = html_actual + bloque_html
+                                _msg_obj.HTMLBody = html_actual
+                        except Exception:
+                            pass
+                        # Cuerpo texto plano — agregar al final como fallback
+                        try:
+                            body_actual = _msg_obj.Body or ""
+                            if etiqueta_id not in body_actual:
+                                _msg_obj.Body = body_actual + f"\n\n{etiqueta_id}"
+                        except Exception:
+                            pass
+                        _msg_obj.Save()
+                    except Exception as e:
+                        from Utilidades.logger_errores import log_advertencia
+                        log_advertencia("recopilador", "REC-007", detalle=f"No se pudo etiquetar cuerpo: {e}")
                 _marcar_procesado(correo["id"])
                 correos_completados.append(correo["id"])
 

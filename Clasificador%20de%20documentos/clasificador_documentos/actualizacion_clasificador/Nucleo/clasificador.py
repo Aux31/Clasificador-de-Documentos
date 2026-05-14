@@ -42,13 +42,6 @@ _PATRON_PO = re.compile(
 # BL MAEU9876543, BL# 265008831, BL-XXXXX
 _PATRON_BL = re.compile(r'BL[\s#\-_]+([A-Z0-9]{4,20})', re.IGNORECASE)
 
-# Números de 6 dígitos sin prefijo en el asunto — captura candidatos como "RE: 202708 ECOFROST."
-# Solo se usa como fallback cuando _PATRON_PO no encuentra nada, y solo si el número cae en el
-# rango de OCs válidas de Inteca (180000–299999).
-_PATRON_NUMERO_DESNUDO = re.compile(r'(?<!\d)(\d{6})(?!\d)')
-_OC_INTECA_MIN = 180000
-_OC_INTECA_MAX = 299999  # OC actual ~209748; margen de ~90k; actualizar si se supera
-
 
 # ---------------------------------------------------------------------------
 # Extracción de PO / BL del asunto o nombre del archivo
@@ -83,24 +76,11 @@ def extraer_po_y_bl_de_asunto(asunto: str) -> tuple[str | None, str | None]:
     """
     Extrae PO y BL del asunto del correo en un solo paso.
 
-    Intenta primero con prefijo explícito (OC-, PO, #). Si no encuentra,
-    busca números desnudos de 6 dígitos que caigan en el rango de OCs de Inteca
-    (ej: "RE: 202708 ECOFROST." → 202708).
-
     Returns:
         Tupla (numero_po, numero_bl), cualquiera puede ser None.
     """
     match = _PATRON_PO.search(asunto)
     numero_po = (match.group(1) or match.group(2) or match.group(3)) if match else None
-
-    # Fallback: número desnudo de 6 dígitos en el asunto que esté en rango Inteca
-    if not numero_po:
-        for m in _PATRON_NUMERO_DESNUDO.finditer(asunto):
-            candidato = m.group(1)
-            if _OC_INTECA_MIN <= int(candidato) <= _OC_INTECA_MAX:
-                numero_po = candidato
-                break  # tomar el primero que cae en rango
-
     return numero_po, extraer_numero_bl(asunto)
 
 
@@ -117,8 +97,6 @@ _CO_ALIAS   = {"CERTIFICATE OF ORIGIN", "COO", "CERTIFICADO DE ORIGEN", "ORIGIN 
 _WC_ALIAS   = {"WEIGHT CERTIFICATE", "CERTIFICADO DE PESO"}
 _QC_ALIAS   = {"QUALITY CERTIFICATE", "CERTIFICATE OF QUALITY",
                 "INSPECTION CERTIFICATE", "TEST REPORT", "QC REPORT"}
-_FC_ALIAS   = {"FUMIGATION CERTIFICATE", "CERTIFICADO DE FUMIGACION", "CERTIFICADO DE FUMIGACIÓN",
-                "FUMIGATION CERT"}
 _INV_ALIAS  = {"COMMERCIAL INVOICE", "TAX INVOICE", "FACTURA COMERCIAL"}
 _FITO_ALIAS = {"PHYTOSANITARY", "PHYTO CERTIFICATE", "PLANT HEALTH", "CERTIFICADO FITOSANITARIO",
                 "FITOSANITARIO"}
@@ -126,8 +104,6 @@ _ZOO_ALIAS  = {"ZOOSANITARIO", "ZOOSANITARY", "CERTIFICADO VETERINARIO",
                 "VETERINARY CERTIFICATE", "ANIMAL HEALTH"}
 _EXO_ALIAS  = {"EXONERACION", "EXONERACIÓN", "HACIENDA", "DGT"}
 _MAR_ALIAS  = {"MARCHAMO", "PRECINTO", "SEAL PHOTO", "FOTO MARCHAMO", "FOTO PRECINTO"}
-# Declaración de Importación: nombre empieza con "DI " seguido de número largo de expediente
-_DI_PATRON  = re.compile(r'^DI\s+\d{7,}', re.IGNORECASE)
 
 # Palabras clave para clasificación por CONTENIDO del documento
 _PALABRAS_CLAVE_CONTENIDO: list[tuple[str, list[str]]] = [
@@ -142,18 +118,9 @@ _PALABRAS_CLAVE_CONTENIDO: list[tuple[str, list[str]]] = [
                             "AWB NO", "AWB NUMBER", "GUIA AEREA", "GUÍA AÉREA"]),
     ("INVOICE",           ["COMMERCIAL INVOICE", "TAX INVOICE", "INVOICE NO", "INVOICE NUMBER",
                             "FACTURA COMERCIAL", "FACTURA", "BILLING"]),
-    ("FUMIGATION CERTIFICATE", ["FUMIGATION CERTIFICATE", "CERTIFICADO DE FUMIGACION",
-                                "CERTIFICADO DE FUMIGACIÓN", "ALUMINIUM PHOSPHIDE",
-                                "FOSFURO DE ALUMINIO", "METHYL BROMIDE", "BROMURO DE METILO",
-                                "IT IS FUMIGATED BY FIRM", "FUMIGATED BY FIRM",
-                                "DISINFESTATION", "DOSAGE", "EXPOSURE TIME",
-                                "FUMIGANT"]),
     ("WEIGHT CERTIFICATE",  ["WEIGHT CERTIFICATE", "CERTIFICADO DE PESO"]),
     ("QUALITY CERTIFICATE", ["QUALITY CERTIFICATE", "CERTIFICATE OF QUALITY",
-                              "INSPECTION CERTIFICATE", "TEST REPORT", "QC REPORT", "QUALITY REPORT",
-                              "ANALYSIS REPORT", "CERTIFICATE OF ANALYSIS",
-                              "ALVEOGRAPH", "FARINOGRAPH", "EXTENSOGRAPH",
-                              "ALVEOGRAF", "FARINOGRAM", "EXTENSOGRAM"]),
+                              "INSPECTION CERTIFICATE", "TEST REPORT", "QC REPORT", "QUALITY REPORT"]),
     ("PACKING LIST",      ["PACKING LIST", "PACKLIST", "PACKING DETAILS", "PACKING SLIP",
                             "LISTA DE EMPAQUE", "DETALLE DE EMPAQUE"]),
     ("CO",                ["CERTIFICATE OF ORIGIN", "CERTIFICATEOF ORIGIN", "CERTIFICATEOFORIGIN",
@@ -171,9 +138,6 @@ _PALABRAS_CLAVE_CONTENIDO: list[tuple[str, list[str]]] = [
                             "TAX EXEMPTION"]),
     ("MARCHAMO",          ["MARCHAMO", "PRECINTO", "SEAL NUMBER", "CONTAINER SEAL",
                             "SEAL PHOTO", "FOTO MARCHAMO", "FOTO PRECINTO"]),
-    ("DECLARACION DE IMPORTACION", ["DECLARACION DE IMPORTACION", "DECLARACIÓN DE IMPORTACIÓN",
-                                     "SISTEMA TICA", "DOCUMENTO UNICO ADUANERO", "DUA",
-                                     "ADUANA DE COSTA RICA"]),
 ]
 
 
@@ -208,15 +172,11 @@ def _clasificar_fallback_nombre(nombre_archivo: str) -> list[str]:
     if "PACKING LIST" not in tipos and any(a in nombre_upper for a in _PL_ALIAS):
         tipos.append("PACKING LIST")
     if "CO" not in tipos and any(a in nombre_upper for a in _CO_ALIAS):
-        # No confundir certificados de salud/sanitarios con CO
-        if not any(p in nombre_upper for p in {"HEALTH", "SANITARY", "SANITARIO", "SALUD"}):
-            tipos.append("CO")
+        tipos.append("CO")
     if "WEIGHT CERTIFICATE" not in tipos and any(a in nombre_upper for a in _WC_ALIAS):
         tipos.append("WEIGHT CERTIFICATE")
     if "QUALITY CERTIFICATE" not in tipos and any(a in nombre_upper for a in _QC_ALIAS):
         tipos.append("QUALITY CERTIFICATE")
-    if "FUMIGATION CERTIFICATE" not in tipos and any(a in nombre_upper for a in _FC_ALIAS):
-        tipos.append("FUMIGATION CERTIFICATE")
     if "INVOICE" not in tipos and any(a in nombre_upper for a in _INV_ALIAS):
         tipos.append("INVOICE")
     if "FITOSANITARIO" not in tipos and any(a in nombre_upper for a in _FITO_ALIAS):
@@ -227,8 +187,6 @@ def _clasificar_fallback_nombre(nombre_archivo: str) -> list[str]:
         tipos.append("EXONERACION")
     if "MARCHAMO" not in tipos and any(a in nombre_upper for a in _MAR_ALIAS):
         tipos.append("MARCHAMO")
-    if "DECLARACION DE IMPORTACION" not in tipos and _DI_PATRON.match(nombre_archivo):
-        tipos.append("DECLARACION DE IMPORTACION")
 
     # Combinar PL + INV en tipo especial si ambos están presentes
     if "PL + INV" in tipos:
@@ -241,13 +199,6 @@ def _clasificar_fallback_nombre(nombre_archivo: str) -> list[str]:
     return tipos if tipos else ["OTROS"]
 
 
-_PALABRAS_SALUD = {
-    "HEALTH CERTIFICATE", "CERTIFICATE OF HEALTH", "SANITARY CERTIFICATE",
-    "CERTIFICADO DE SALUD", "CERTIFICADO SANITARIO", "HEALTH AND SANITARY",
-    "SANITARY AND HEALTH",
-}
-
-
 def _clasificar_fallback_contenido(texto_upper: str) -> str:
     """
     Detecta el tipo de documento por keywords en el contenido del texto.
@@ -258,10 +209,6 @@ def _clasificar_fallback_contenido(texto_upper: str) -> str:
     Returns:
         Tipo detectado, o 'OTROS' si no coincide ninguno.
     """
-    # Certificados de salud/sanitarios → siempre OTROS, aunque el texto mencione "origin"
-    if any(p in texto_upper for p in _PALABRAS_SALUD):
-        return "OTROS"
-
     for tipo, palabras in _PALABRAS_CLAVE_CONTENIDO:
         if any(p in texto_upper for p in palabras):
             return tipo
@@ -291,8 +238,7 @@ def renombrar_para_tipo(nombre_archivo: str, tipo: str, tipos_totales: list[str]
 
 def formatear_numero_oc(numero_po: str) -> str:
     """Convierte '196893' → 'cmer-OC-00196893' (siempre 8 dígitos)."""
-    solo_digitos = re.sub(r'\D', '', numero_po)
-    return f"cmer-OC-{solo_digitos.zfill(8)}"
+    return f"cmer-OC-{numero_po.zfill(8)}"
 
 
 _PATRON_BORRADOR_NOMBRE = re.compile(
@@ -375,13 +321,6 @@ def procesar_adjunto(
     """
     # --- 1. PO es obligatorio (tres intentos antes de llegar a Claude) ---
     numero_po = numero_po_asunto or extraer_numero_po(nombre_archivo)
-    # Si el nombre del archivo tiene una PO distinta a la del asunto, el archivo manda:
-    # el proveedor puede incluir adjuntos de múltiples OCs en un mismo correo.
-    if numero_po_asunto:
-        _po_en_nombre = extraer_numero_po(nombre_archivo)
-        if _po_en_nombre and _po_en_nombre != numero_po_asunto:
-            print(f"  [PO-CONFLICTO] Nombre tiene PO {_po_en_nombre} ≠ asunto {numero_po_asunto} → usando PO del archivo: {nombre_archivo}")
-            numero_po = _po_en_nombre
     if not numero_po and ruta_local:
         # Segundo intento: buscar el PO dentro del contenido del archivo (texto digital u OCR)
         try:
@@ -450,35 +389,10 @@ def procesar_adjunto(
         asunto_correo=asunto_correo,
     )
 
-    # Tercer intento: PO extraído por Claude al leer el documento.
-    # Regla de negocio: las OCs de Inteca son números consecutivos en el rango Inteca válido.
-    # Si hay conflicto entre el PO del asunto/nombre y el del documento del proveedor,
-    # gana el que cae dentro del rango válido. Si ambos o ninguno cae en el rango, gana
-    # el del asunto (tiene mayor confiabilidad de fuente).
-
-    def _es_oc_inteca(n: str) -> bool:
-        try:
-            return _OC_INTECA_MIN <= int(n) <= _OC_INTECA_MAX
-        except (ValueError, TypeError):
-            return False
-
-    if numero_po_claude:
-        if not numero_po:
-            numero_po = numero_po_claude
-            print(f"  [PO-CLAUDE] PO {numero_po} extraído por Claude del contenido de: {nombre_archivo}")
-        elif numero_po_claude != numero_po:
-            asunto_en_rango  = _es_oc_inteca(numero_po)
-            claude_en_rango  = _es_oc_inteca(numero_po_claude)
-            if claude_en_rango and not asunto_en_rango:
-                # El PO del documento está en rango Inteca y el del asunto no → Claude gana
-                print(f"  [PO-CLAUDE] Claude encontró PO {numero_po_claude} (en rango Inteca; '{numero_po}' del asunto no) → usando PO del documento: {nombre_archivo}")
-                numero_po = numero_po_claude
-            elif asunto_en_rango:
-                # El PO del asunto/nombre ya está en rango → conservar (el del doc puede ser PO interno del proveedor)
-                print(f"  [PO-ASUNTO] Manteniendo PO {numero_po} del asunto (en rango Inteca); Claude propuso {numero_po_claude}: {nombre_archivo}")
-            else:
-                # Ninguno en rango — conservar el del asunto como fuente más confiable
-                print(f"  [PO-ASUNTO] Ningún PO en rango Inteca; manteniendo '{numero_po}' del asunto vs '{numero_po_claude}' de Claude: {nombre_archivo}")
+    # Tercer intento: PO extraído por Claude al leer el documento (útil para PDFs escaneados sin asunto)
+    if not numero_po and numero_po_claude:
+        numero_po = numero_po_claude
+        print(f"  [PO-CLAUDE] PO {numero_po} extraído por Claude del contenido de: {nombre_archivo}")
 
     if not numero_po:
         _logger_clas.debug(f"  [SKIP] No se encontró número de PO en: {nombre_archivo}")
@@ -576,18 +490,6 @@ def procesar_adjunto(
             inconsistencias = list(inconsistencias) + _incs_deterministas
     # Borrador: Claude lo detectó en el contenido O está en el nombre del archivo
     es_borrador = es_borrador_claude or es_borrador_por_nombre(nombre_archivo)
-
-    # Salvaguarda para INVOICE/PL+INV: algunos proveedores (ej. ABLE Dairies) usan plantillas de
-    # correo cuyo asunto siempre dice "DRAFT DOCUMENT..." aunque el adjunto sea la factura definitiva.
-    # Si Claude marcó es_borrador=True pero el nombre del archivo no tiene marcas de borrador,
-    # confirmamos contra el texto del documento para no enviar facturas reales a la carpeta de borrador.
-    if es_borrador and any(t in tipos for t in ("INVOICE", "PL + INV")) and not es_borrador_por_nombre(nombre_archivo):
-        _texto_borrador = (_texto_para_validar or "").upper()
-        _MARCAS_BORRADOR = ("DRAFT", "BORRADOR", "PRELIMINARY", "NON-NEGOTIABLE",
-                            "NON NEGOTIABLE", "SPECIMEN", "COPY ONLY", "NOT NEGOTIABLE")
-        if not any(m in _texto_borrador for m in _MARCAS_BORRADOR):
-            _logger_clas.debug(f"  [BORRADOR] Claude dijo borrador pero el texto del documento no tiene marcas — se trata como definitivo: {nombre_archivo}")
-            es_borrador = False
 
     # Regla de seguridad para CO: solo marcar definitivo si Claude confirmó el sello
     # Y el texto extraído lo respalda. Ante cualquier duda → borrador.
