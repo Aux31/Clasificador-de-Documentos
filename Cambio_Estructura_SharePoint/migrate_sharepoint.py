@@ -391,6 +391,22 @@ def run_execute(gc: GraphClient, oc_filter: str | None, config: dict, backup_fil
         created = _ensure_new_structure(gc, oc_id, id_map, config, oc_log)
         print(f"  {created} carpetas nuevas creadas")
 
+        # Detectar carpetas ajenas a la nueva estructura que quedaron con archivos
+        new_set      = set(config["new_structure"]["folders"])
+        preserve_set = set(config["old_structure"]["folders_to_preserve"])
+        safe_set     = new_set | preserve_set
+        carpetas_sp  = _listar_carpetas(gc, oc_id)
+        for c in carpetas_sp:
+            if c["name"] not in safe_set:
+                if _tiene_archivos_recursivo(gc, c["id"]):
+                    already = any(op["folder"] == c["name"] for op in oc_log["operations"])
+                    if not already:
+                        oc_log["operations"].append({
+                            "folder": c["name"], "action": "delete",
+                            "result": "warning", "detail": "Carpeta con archivos — NO borrada"
+                        })
+                        print(f"  [WARN] {c['name']}: fuera de estructura nueva, tiene archivos")
+
         _actualizar_registro(nombre_oc, oc_log, backup_file)
 
     print(f"\n[OK] Migracion completada. Ver {MIGRACIONES_LOG.name}")
@@ -458,10 +474,6 @@ def _resolver_ocs(oc_filter: str | None) -> list[str]:
     if oc_filter == "--all":
         return OCS_REGISTRO
     if oc_filter:
-        # Buscar en ambas listas
-        todas = OCS_PRUEBA + OCS_REGISTRO
-        if oc_filter not in todas:
-            sys.exit(f"[ERROR] OC '{oc_filter}' no esta en la lista.")
         return [oc_filter]
     return OCS_PRUEBA
 

@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ===== POOL PRINCIPAL ===== -->
+    <mxCell id="pool1" value="Clasificador de Documentos" style="shape=pool;startSize=20;horizontal=1;childLayout=stackLayout;horizontalStack=0;resizeParent=1;resizeParentMax=0;collapsible=0;marginBottom=0;swimlaneHead=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+      <mxGeometry x="40" y="40" width="1580" height="1000" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 1: Monitor Correos ===== -->
+    <mxCell id="lane1" value="Monitor Correos&#xa;(monitor_correos.py)" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="pool1">
+      <mxGeometry x="0" y="20" width="1580" height="160" as="geometry" />
+    </mxCell>
+
+    <!-- Evento inicio -->
+    <mxCell id="ev_inicio" value="Correo&#xa;recibido" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane1">
+      <mxGeometry x="40" y="60" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Extraer metadatos -->
+    <mxCell id="t_metadata" value="Extraer metadatos&#xa;(asunto, remitente,&#xa;EntryID)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="150" y="55" width="140" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- GW: ¿Tiene adjuntos? -->
+    <mxCell id="gw_adjuntos" value="¿Tiene&#xa;adjuntos?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="340" y="50" width="100" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Marcar procesado sin adjuntos -->
+    <mxCell id="t_sin_adj" value="Marcar como&#xa;procesado" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="lane1">
+      <mxGeometry x="330" y="10" width="120" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Extraer PO/BL del asunto -->
+    <mxCell id="t_po_bl" value="Extraer PO/BL&#xa;del asunto" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="490" y="55" width="130" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Verificar cadena de correo -->
+    <mxCell id="t_cadena" value="Verificar consistencia&#xa;cadena de correo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="670" y="55" width="140" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Iterador adjuntos -->
+    <mxCell id="t_iter" value="Procesar cada&#xa;adjunto (loop)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane1">
+      <mxGeometry x="860" y="55" width="130" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- GW: ¿Inconsistencias? -->
+    <mxCell id="gw_incon" value="¿Hay&#xa;inconsistencias?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="1040" y="50" width="110" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Marcar procesado final -->
+    <mxCell id="t_marcar" value="Marcar email&#xa;como procesado" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="1360" y="55" width="130" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Evento fin correo OK -->
+    <mxCell id="ev_fin_ok" value="Fin" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=3;" vertex="1" parent="lane1">
+      <mxGeometry x="1530" y="65" width="40" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 2: Agente Seguridad ===== -->
+    <mxCell id="lane2" value="Agente Seguridad&#xa;(agente_seguridad.py)" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="pool1">
+      <mxGeometry x="0" y="180" width="1580" height="160" as="geometry" />
+    </mxCell>
+
+    <!-- Verificar AV activo -->
+    <mxCell id="t_av" value="Verificar servicio&#xa;Bitdefender activo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="150" y="55" width="140" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- GW: AV activo? -->
+    <mxCell id="gw_av" value="¿AV&#xa;activo?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="340" y="50" width="90" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Detectar duplicado -->
+    <mxCell id="t_hash" value="Calcular SHA-256&#xa;y verificar duplicado" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="480" y="55" width="140" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- GW: duplicado? -->
+    <mxCell id="gw_dup" value="¿Ya&#xa;procesado?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="670" y="50" width="90" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Verificar extensión -->
+    <mxCell id="t_ext" value="Verificar extensión,&#xa;magic bytes y&#xa;tamaño (SEG-002/003/004)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="810" y="50" width="160" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Esperar AV scan -->
+    <mxCell id="t_av_wait" value="Esperar análisis&#xa;antivirus (SEG-005)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="1020" y="55" width="140" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- GW: Aprobado? -->
+    <mxCell id="gw_seg" value="¿Archivo&#xa;aprobado?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="1210" y="50" width="100" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Rechazar archivo -->
+    <mxCell id="t_rechazar" value="Rechazar adjunto&#xa;(log error SEG-XXX)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="lane2">
+      <mxGeometry x="1200" y="5" width="140" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Duplicado skip -->
+    <mxCell id="t_dup_skip" value="Saltar adjunto&#xa;(duplicado)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="lane2">
+      <mxGeometry x="660" y="5" width="110" height="35" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 3: Núcleo Clasificación ===== -->
+    <mxCell id="lane3" value="Núcleo Clasificación&#xa;(clasificador.py / clasificador_claude.py)" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="pool1">
+      <mxGeometry x="0" y="340" width="1580" height="280" as="geometry" />
+    </mxCell>
+
+    <!-- Extraer PO del doc -->
+    <mxCell id="t_po_doc" value="Extraer N° OC&#xa;(asunto → nombre → Claude)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+      <mxGeometry x="150" y="100" width="160" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- GW: PO encontrado? -->
+    <mxCell id="gw_po" value="¿OC&#xa;encontrada?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+      <mxGeometry x="360" y="95" width="100" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Error PO -->
+    <mxCell id="t_po_err" value="Registrar error&#xa;OC no encontrada" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="lane3">
+      <mxGeometry x="355" y="40" width="130" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Descomprimir si ZIP/RAR -->
+    <mxCell id="t_zip" value="¿ZIP/RAR?&#xa;Descomprimir adjunto" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+      <mxGeometry x="510" y="100" width="140" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Sub-proceso Full Set -->
+    <mxCell id="sp_fullset" value="[Sub-proceso]&#xa;Detectar y separar&#xa;Full Set" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="lane3">
+      <mxGeometry x="700" y="95" width="150" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Sub-proceso clasificación -->
+    <mxCell id="sp_clasif" value="[Sub-proceso]&#xa;Clasificar documento&#xa;(Claude + fallbacks)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="lane3">
+      <mxGeometry x="900" y="95" width="150" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Resolver conflicto PO -->
+    <mxCell id="t_po_conflict" value="Resolver conflicto PO&#xa;(asunto vs Claude)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+      <mxGeometry x="1100" y="100" width="150" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Validar campos -->
+    <mxCell id="t_val_campos" value="Validar campos&#xa;determinísticos&#xa;(ISO 6346, pesos, etc.)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+      <mxGeometry x="1300" y="95" width="150" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Detectar borrador -->
+    <mxCell id="t_borrador" value="Detectar si es&#xa;borrador (nombre/Claude)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+      <mxGeometry x="700" y="195" width="150" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Construir ruta SharePoint -->
+    <mxCell id="t_ruta" value="Construir ruta&#xa;destino SharePoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+      <mxGeometry x="900" y="195" width="150" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 4: SharePoint ===== -->
+    <mxCell id="lane4" value="SharePoint / Graph API&#xa;(graph_client.py)" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="pool1">
+      <mxGeometry x="0" y="620" width="1580" height="180" as="geometry" />
+    </mxCell>
+
+    <!-- Auth token -->
+    <mxCell id="t_auth" value="Obtener/refrescar&#xa;token OAuth2 (MSAL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane4">
+      <mxGeometry x="150" y="60" width="140" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Buscar carpeta OC -->
+    <mxCell id="t_buscar_oc" value="Buscar carpeta OC&#xa;en SharePoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane4">
+      <mxGeometry x="340" y="60" width="140" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- GW: carpeta existe? -->
+    <mxCell id="gw_carpeta" value="¿Carpeta&#xa;existe?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane4">
+      <mxGeometry x="530" y="55" width="100" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Crear carpeta -->
+    <mxCell id="t_crear_carpeta" value="Crear estructura&#xa;de carpetas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane4">
+      <mxGeometry x="525" y="10" width="110" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- GW: ya existe archivo? -->
+    <mxCell id="gw_existe" value="¿Archivo ya&#xa;subido?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane4">
+      <mxGeometry x="680" y="55" width="100" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Subir archivo -->
+    <mxCell id="t_subir" value="Subir archivo&#xa;a SharePoint&#xa;(&lt;4MB directo / &gt;4MB chunked)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane4">
+      <mxGeometry x="830" y="55" width="160" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Registrar subida -->
+    <mxCell id="t_log_subida" value="Registrar en&#xa;registros_subidas.log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane4">
+      <mxGeometry x="1040" y="60" width="140" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 5: Respuesta Inconsistencias ===== -->
+    <mxCell id="lane5" value="Respuesta a Inconsistencias&#xa;(clasificador_claude.py / generador_reporte.py)" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="pool1">
+      <mxGeometry x="0" y="800" width="1580" height="180" as="geometry" />
+    </mxCell>
+
+    <!-- Generar borrador respuesta -->
+    <mxCell id="t_gen_resp" value="Generar borrador&#xa;respuesta proveedor&#xa;(Claude)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane5">
+      <mxGeometry x="150" y="55" width="150" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Contrastar sugerencia -->
+    <mxCell id="t_contrastar" value="Contrastar sugerencia&#xa;vs. inconsistencias&#xa;detectadas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane5">
+      <mxGeometry x="350" y="55" width="150" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Generar reporte Word -->
+    <mxCell id="t_reporte" value="Generar reporte&#xa;Word con severidades" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane5">
+      <mxGeometry x="550" y="55" width="140" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Encolar aprobación -->
+    <mxCell id="t_encolar" value="[Sub-proceso]&#xa;Encolar borrador&#xa;para aprobación" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="lane5">
+      <mxGeometry x="740" y="55" width="150" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Enviar reporte por correo -->
+    <mxCell id="t_enviar_rpt" value="Enviar reporte&#xa;por correo /&#xa;notificar Teams" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane5">
+      <mxGeometry x="940" y="55" width="140" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- ===== FLUJOS LANE 1 ===== -->
+    <mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="ev_inicio" target="t_metadata" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_metadata" target="gw_adjuntos" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f3" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_adjuntos" target="t_sin_adj" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f4" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_adjuntos" target="t_po_bl" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_po_bl" target="t_cadena" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_cadena" target="t_iter" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f7" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_incon" target="t_marcar" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f8" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_marcar" target="ev_fin_ok" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- ===== FLUJOS LANE 2 ===== -->
+    <mxCell id="f9" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_av" target="gw_av" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f10" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_av" target="t_hash" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f11" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_av" target="t_rechazar" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f12" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_hash" target="gw_dup" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f13" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_dup" target="t_dup_skip" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f14" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_dup" target="t_ext" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f15" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_ext" target="t_av_wait" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f16" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_av_wait" target="gw_seg" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f17" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_seg" target="t_rechazar" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- ===== FLUJOS LANE 3 ===== -->
+    <mxCell id="f18" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_po_doc" target="gw_po" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f19" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_po" target="t_po_err" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f20" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_po" target="t_zip" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f21" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_zip" target="sp_fullset" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f22" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="sp_fullset" target="sp_clasif" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f23" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="sp_clasif" target="t_po_conflict" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f24" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_po_conflict" target="t_val_campos" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f25" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="sp_clasif" target="t_borrador" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f26" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_borrador" target="t_ruta" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- ===== FLUJOS LANE 4 ===== -->
+    <mxCell id="f27" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_auth" target="t_buscar_oc" parent="lane4"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f28" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_buscar_oc" target="gw_carpeta" parent="lane4"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f29" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_carpeta" target="t_crear_carpeta" parent="lane4"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f30" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_carpeta" target="gw_existe" parent="lane4"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f31" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_crear_carpeta" target="gw_existe" parent="lane4"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f32" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_existe" target="t_log_subida" parent="lane4"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f33" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_existe" target="t_subir" parent="lane4"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f34" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_subir" target="t_log_subida" parent="lane4"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- ===== FLUJOS LANE 5 ===== -->
+    <mxCell id="f35" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_gen_resp" target="t_contrastar" parent="lane5"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f36" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_contrastar" target="t_reporte" parent="lane5"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f37" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_reporte" target="t_encolar" parent="lane5"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f38" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_encolar" target="t_enviar_rpt" parent="lane5"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- ===== FLUJOS ENTRE LANES ===== -->
+    <!-- iter → av en lane2 -->
+    <mxCell id="fc1" value="por cada adjunto" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="t_iter" target="t_av" parent="pool1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <!-- seg aprobado → po_doc en lane3 -->
+    <mxCell id="fc2" value="Aprobado" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_seg" target="t_po_doc" parent="pool1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <!-- ruta → auth en lane4 -->
+    <mxCell id="fc3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_ruta" target="t_auth" parent="pool1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <!-- log_subida vuelve a gw_incon en lane1 -->
+    <mxCell id="fc4" value="fin adjunto" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_log_subida" target="gw_incon" parent="pool1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <!-- gw_incon Sí → gen_resp en lane5 -->
+    <mxCell id="fc5" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_incon" target="t_gen_resp" parent="pool1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <!-- enviar_rpt → marcar en lane1 -->
+    <mxCell id="fc6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_enviar_rpt" target="t_marcar" parent="pool1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+  </root>
+</mxGraphModel>

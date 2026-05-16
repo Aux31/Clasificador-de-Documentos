@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- Título -->
+    <mxCell id="titulo" value="Sub-proceso: Clasificación con Fallbacks&#xa;(clasificador.py + clasificador_claude.py)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="150" y="20" width="800" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ===== POOL ===== -->
+    <mxCell id="pool" value="Clasificación de Documentos" style="shape=pool;startSize=20;horizontal=1;childLayout=stackLayout;horizontalStack=0;resizeParent=1;resizeParentMax=0;collapsible=0;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+      <mxGeometry x="40" y="70" width="1100" height="720" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 1: Claude API ===== -->
+    <mxCell id="lane1" value="Clasificación Principal — Claude API&#xa;(clasificador_claude.py)" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="pool">
+      <mxGeometry x="0" y="20" width="1100" height="230" as="geometry" />
+    </mxCell>
+
+    <!-- Evento inicio -->
+    <mxCell id="ev_ini" value="Documento a&#xa;clasificar" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane1">
+      <mxGeometry x="30" y="80" width="70" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Preparar documento -->
+    <mxCell id="t_prep" value="Preparar documento:&#xa;PDF/imagen → base64&#xa;Office → extraer texto" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="150" y="80" width="160" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Llamada Claude clasificación -->
+    <mxCell id="t_claude1" value="Llamada Claude API&#xa;(prompt cacheado ~90% ahorro)&#xa;→ tipo, certeza, justificación,&#xa;nombre_proveedor, es_borrador, N° OC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="lane1">
+      <mxGeometry x="370" y="70" width="200" height="90" as="geometry" />
+    </mxCell>
+
+    <!-- GW: respuesta válida? -->
+    <mxCell id="gw_resp" value="¿Respuesta&#xa;JSON válida?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="620" y="75" width="110" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Parsear con 4 estrategias -->
+    <mxCell id="t_parse" value="Parsear JSON&#xa;(4 estrategias:&#xa;directo → sin backticks&#xa;→ regex → escape NL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="620" y="10" width="160" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- GW: certeza suficiente? -->
+    <mxCell id="gw_cert" value="¿Certeza ≥&#xa;CERTEZA_MINIMA?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="790" y="75" width="130" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- GW: error transient? -->
+    <mxCell id="gw_retry" value="¿Error 429/503?&#xa;¿Intentos &lt; 3?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="960" y="75" width="120" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Backoff y reintentar -->
+    <mxCell id="t_backoff" value="Esperar backoff&#xa;exponencial (2s/4s/8s)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="960" y="10" width="120" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 2: Detección inconsistencias ===== -->
+    <mxCell id="lane2" value="Detección de Inconsistencias — Claude API" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="pool">
+      <mxGeometry x="0" y="250" width="1100" height="160" as="geometry" />
+    </mxCell>
+
+    <!-- GW: tipo con inconsistencias? -->
+    <mxCell id="gw_tipo_inc" value="¿Tipo admite&#xa;detección de&#xa;inconsistencias?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="150" y="40" width="140" height="90" as="geometry" />
+    </mxCell>
+
+    <!-- Nota tipos -->
+    <mxCell id="nota_tipos" value="INVOICE, PL+INV, PACKING LIST,&#xa;BL, MBL, HBL, AWB, CO, etc.&#xa;(excluye: MARCHAMO, EXONERACION, PRINTER, OTROS)" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="lane2">
+      <mxGeometry x="150" y="135" width="340" height="55" as="geometry" />
+    </mxCell>
+
+    <!-- Llamada Claude inconsistencias -->
+    <mxCell id="t_claude2" value="2a llamada Claude API:&#xa;Detectar inconsistencias internas&#xa;→ lista con campo, descripción, severidad" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="lane2">
+      <mxGeometry x="360" y="45" width="220" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Saltar inconsistencias -->
+    <mxCell id="t_skip_inc" value="Omitir detección&#xa;de inconsistencias" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="lane2">
+      <mxGeometry x="360" y="5" width="150" height="35" as="geometry" />
+    </mxCell>
+
+    <!-- Validador determinístico -->
+    <mxCell id="t_val_det" value="Validación determinística&#xa;(validador_campos.py):&#xa;ISO 6346, pesos, consignatario,&#xa;flete, idioma, sello" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="650" y="45" width="200" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Merge inconsistencias -->
+    <mxCell id="t_merge_inc" value="Fusionar inconsistencias&#xa;Claude + determinísticas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="910" y="55" width="150" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 3: Fallbacks ===== -->
+    <mxCell id="lane3" value="Fallbacks de Clasificación&#xa;(clasificador.py)" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="pool">
+      <mxGeometry x="0" y="410" width="1100" height="200" as="geometry" />
+    </mxCell>
+
+    <!-- GW: Claude falló o baja certeza? -->
+    <mxCell id="gw_fall" value="¿Claude falló&#xa;o certeza baja?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+      <mxGeometry x="80" y="60" width="130" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Claude OK: usar tipo Claude -->
+    <mxCell id="t_claude_ok" value="Usar tipo de Claude&#xa;metodo = 'claude'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane3">
+      <mxGeometry x="80" y="10" width="130" height="45" as="geometry" />
+    </mxCell>
+
+    <!-- Fallback 1: keywords nombre -->
+    <mxCell id="t_fb_nombre" value="Fallback 1:&#xa;Buscar keywords en nombre&#xa;del archivo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="lane3">
+      <mxGeometry x="280" y="60" width="170" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- GW: encontró con nombre? -->
+    <mxCell id="gw_fb1" value="¿Tipo&#xa;encontrado?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+      <mxGeometry x="510" y="65" width="110" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Usar fallback nombre -->
+    <mxCell id="t_fb1_ok" value="Usar tipo por nombre&#xa;metodo = 'fallback_nombre'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane3">
+      <mxGeometry x="507" y="10" width="160" height="45" as="geometry" />
+    </mxCell>
+
+    <!-- Fallback 2: keywords contenido -->
+    <mxCell id="t_fb_cont" value="Fallback 2:&#xa;Buscar keywords en&#xa;contenido del texto" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="lane3">
+      <mxGeometry x="690" y="60" width="170" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- GW: encontró con contenido? -->
+    <mxCell id="gw_fb2" value="¿Tipo&#xa;encontrado?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+      <mxGeometry x="920" y="65" width="110" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Usar fallback contenido -->
+    <mxCell id="t_fb2_ok" value="Usar tipo por contenido&#xa;metodo = 'fallback_contenido'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane3">
+      <mxGeometry x="913" y="10" width="170" height="45" as="geometry" />
+    </mxCell>
+
+    <!-- OTROS -->
+    <mxCell id="t_otros" value="Clasificar como OTROS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="lane3">
+      <mxGeometry x="920" y="155" width="150" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 4: Salida ===== -->
+    <mxCell id="lane4" value="Salida" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="pool">
+      <mxGeometry x="0" y="610" width="1100" height="90" as="geometry" />
+    </mxCell>
+
+    <!-- Resultado final -->
+    <mxCell id="t_resultado" value="Resultado:&#xa;tipo, certeza, método, inconsistencias[], texto_extraído,&#xa;nombre_proveedor, es_borrador, número_OC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane4">
+      <mxGeometry x="300" y="20" width="400" height="55" as="geometry" />
+    </mxCell>
+
+    <!-- Evento fin -->
+    <mxCell id="ev_fin" value="Fin" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=3;" vertex="1" parent="lane4">
+      <mxGeometry x="780" y="25" width="50" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- ===== FLUJOS LANE 1 ===== -->
+    <mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="ev_ini" target="t_prep" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_prep" target="t_claude1" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_claude1" target="gw_resp" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f4" value="Error parse" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_resp" target="t_parse" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_parse" target="gw_cert" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f6" value="OK" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_resp" target="gw_cert" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_claude1" target="gw_retry" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f8" value="Sí, reintentar" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_retry" target="t_backoff" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f9" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_backoff" target="t_claude1" parent="lane1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points"><mxPoint x="1020" y="180"/><mxPoint x="470" y="180"/></Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ===== FLUJOS LANE 2 ===== -->
+    <mxCell id="f10" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_tipo_inc" target="t_claude2" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f11" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_tipo_inc" target="t_skip_inc" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f12" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_claude2" target="t_val_det" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f13" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_skip_inc" target="t_val_det" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f14" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_val_det" target="t_merge_inc" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- ===== FLUJOS LANE 3 ===== -->
+    <mxCell id="f15" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_fall" target="t_claude_ok" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f16" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_fall" target="t_fb_nombre" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f17" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_fb_nombre" target="gw_fb1" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f18" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_fb1" target="t_fb1_ok" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f19" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_fb1" target="t_fb_cont" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f20" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_fb_cont" target="gw_fb2" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f21" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_fb2" target="t_fb2_ok" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f22" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_fb2" target="t_otros" parent="lane3"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- ===== FLUJOS LANE 4 ===== -->
+    <mxCell id="f23" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_resultado" target="ev_fin" parent="lane4"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- ===== FLUJOS ENTRE LANES ===== -->
+    <!-- cert alta → tipo_inc -->
+    <mxCell id="fc1" value="Certeza alta" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_cert" target="gw_tipo_inc" parent="pool">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <!-- cert baja → fallback -->
+    <mxCell id="fc2" value="Certeza baja&#xa;o error permanente" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_cert" target="gw_fall" parent="pool">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <!-- merge → gw_fall (tipo confirmado) -->
+    <mxCell id="fc3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_merge_inc" target="gw_fall" parent="pool">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <!-- salidas fallback → resultado -->
+    <mxCell id="fc4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_claude_ok" target="t_resultado" parent="pool">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="fc5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_fb1_ok" target="t_resultado" parent="pool">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="fc6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_fb2_ok" target="t_resultado" parent="pool">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="fc7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_otros" target="t_resultado" parent="pool">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+  </root>
+</mxGraphModel>

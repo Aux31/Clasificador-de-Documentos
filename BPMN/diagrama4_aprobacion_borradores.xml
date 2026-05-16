@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- Título -->
+    <mxCell id="titulo" value="Sub-proceso: Cola de Aprobación de Borradores&#xa;(Aprobaciones/ — flujo asíncrono)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="150" y="20" width="800" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ===== POOL: Sistema ===== -->
+    <mxCell id="pool_sis" value="Sistema — Clasificador de Documentos" style="shape=pool;startSize=20;horizontal=1;childLayout=stackLayout;horizontalStack=0;resizeParent=1;resizeParentMax=0;collapsible=0;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+      <mxGeometry x="40" y="70" width="1080" height="480" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 1: Generación ===== -->
+    <mxCell id="lane1" value="Generación de Borrador&#xa;(clasificador_claude.py / generador_reporte.py)" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="pool_sis">
+      <mxGeometry x="0" y="20" width="1080" height="160" as="geometry" />
+    </mxCell>
+
+    <!-- Evento inicio -->
+    <mxCell id="ev_ini" value="Inconsistencias&#xa;detectadas" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane1">
+      <mxGeometry x="30" y="50" width="80" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Generar borrador con Claude -->
+    <mxCell id="t_gen" value="Generar borrador de respuesta&#xa;al proveedor con Claude API&#xa;(contexto: todas las inconsistencias)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="lane1">
+      <mxGeometry x="160" y="50" width="200" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Contrastar cobertura -->
+    <mxCell id="t_contrastar" value="Contrastar borrador vs.&#xa;inconsistencias (Claude):&#xa;¿Cubre todos los puntos?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="lane1">
+      <mxGeometry x="420" y="50" width="200" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- GW: cobertura OK? -->
+    <mxCell id="gw_cob" value="¿Cobertura&#xa;completa?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="675" y="50" width="110" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Regenerar borrador -->
+    <mxCell id="t_regen" value="Regenerar borrador&#xa;con instrucciones adicionales" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="lane1">
+      <mxGeometry x="667" y="10" width="170" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Guardar .txt en cola -->
+    <mxCell id="t_guardar" value="Guardar borrador como .txt&#xa;en carpeta Aprobaciones/&#xa;Estado: PENDIENTE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+      <mxGeometry x="860" y="55" width="180" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 2: Cola / Watcher ===== -->
+    <mxCell id="lane2" value="Cola de Aprobación&#xa;(Aprobaciones/watcher)" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="pool_sis">
+      <mxGeometry x="0" y="180" width="1080" height="160" as="geometry" />
+    </mxCell>
+
+    <!-- Watcher monitorea carpeta -->
+    <mxCell id="t_watch" value="Watcher monitorea&#xa;carpeta Aprobaciones/&#xa;(loop continuo)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane2">
+      <mxGeometry x="80" y="50" width="160" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- GW: archivo nuevo? -->
+    <mxCell id="gw_nuevo" value="¿Archivo .txt&#xa;nuevo detectado?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="300" y="50" width="130" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Leer estado -->
+    <mxCell id="t_leer" value="Leer estado del&#xa;archivo .txt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="490" y="55" width="140" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- GW: estado? -->
+    <mxCell id="gw_estado" value="¿Estado?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+      <mxGeometry x="690" y="50" width="110" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- PENDIENTE: esperar -->
+    <mxCell id="t_esperar" value="Seguir esperando&#xa;(PENDIENTE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="lane2">
+      <mxGeometry x="683" y="135" width="130" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ===== LANE 3: Envío / Rechazo ===== -->
+    <mxCell id="lane3" value="Resultado de Aprobación" style="swimlane;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="pool_sis">
+      <mxGeometry x="0" y="340" width="1080" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- Enviar correo aprobado -->
+    <mxCell id="t_enviar" value="Enviar respuesta&#xa;al proveedor por Outlook&#xa;(win32com)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane3">
+      <mxGeometry x="690" y="25" width="160" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Descartar borrador -->
+    <mxCell id="t_descartar" value="Descartar borrador&#xa;(eliminar .txt)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="lane3">
+      <mxGeometry x="900" y="25" width="140" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Evento fin aprobado -->
+    <mxCell id="ev_fin_ap" value="Respuesta&#xa;enviada" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=3;" vertex="1" parent="lane3">
+      <mxGeometry x="870" y="35" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Evento fin rechazado -->
+    <mxCell id="ev_fin_rec" value="Borrador&#xa;descartado" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=3;" vertex="1" parent="lane3">
+      <mxGeometry x="1010" y="35" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- ===== FLUJOS LANE 1 ===== -->
+    <mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="ev_ini" target="t_gen" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_gen" target="t_contrastar" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_contrastar" target="gw_cob" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f4" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_cob" target="t_regen" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_regen" target="t_contrastar" parent="lane1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points"><mxPoint x="750" y="5"/><mxPoint x="520" y="5"/></Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="f6" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_cob" target="t_guardar" parent="lane1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- ===== FLUJOS LANE 2 ===== -->
+    <mxCell id="f7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_watch" target="gw_nuevo" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f8" value="No, seguir" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_nuevo" target="t_watch" parent="lane2">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points"><mxPoint x="365" y="145"/><mxPoint x="160" y="145"/></Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="f9" value="Sí" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_nuevo" target="t_leer" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f10" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_leer" target="gw_estado" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f11" value="PENDIENTE" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_estado" target="t_esperar" parent="lane2"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f12" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_esperar" target="t_leer" parent="lane2">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points"><mxPoint x="748" y="155"/><mxPoint x="560" y="155"/></Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ===== FLUJOS ENTRE LANES DEL POOL ===== -->
+    <mxCell id="fc1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_guardar" target="t_watch" parent="pool_sis">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="fc2" value="APROBAR" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_estado" target="t_enviar" parent="pool_sis">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="fc3" value="RECHAZAR" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="gw_estado" target="t_descartar" parent="pool_sis">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="fc4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_enviar" target="ev_fin_ap" parent="pool_sis">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="fc5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_descartar" target="ev_fin_rec" parent="pool_sis">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- ===== POOL: Usuario/Supervisor ===== -->
+    <mxCell id="pool_user" value="Supervisor / Responsable de Aprobación" style="shape=pool;startSize=20;horizontal=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+      <mxGeometry x="40" y="570" width="1080" height="160" as="geometry" />
+    </mxCell>
+
+    <!-- Lane usuario -->
+    <mxCell id="lane_u" value="Revisor" style="swimlane;startSize=30;horizontal=0;fillColor=#fffde7;strokeColor=#d6b656;" vertex="1" parent="pool_user">
+      <mxGeometry x="0" y="20" width="1080" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- Recibir notificación -->
+    <mxCell id="t_noti" value="Recibir notificación&#xa;(correo / Teams)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane_u">
+      <mxGeometry x="200" y="30" width="160" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Revisar borrador -->
+    <mxCell id="t_revisar" value="Revisar borrador&#xa;en carpeta Aprobaciones/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane_u">
+      <mxGeometry x="430" y="30" width="160" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Cambiar estado -->
+    <mxCell id="t_cambio" value="Cambiar estado a&#xa;APROBAR o RECHAZAR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane_u">
+      <mxGeometry x="660" y="30" width="160" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Flujos usuario -->
+    <mxCell id="fu1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_noti" target="t_revisar" parent="lane_u"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="fu2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t_revisar" target="t_cambio" parent="lane_u"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- Flujos cross-pool (mensaje events) -->
+    <mxCell id="fm1" value="Notificación" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;" edge="1" source="t_guardar" target="t_noti" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="fm2" value="Actualiza estado .txt" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;" edge="1" source="t_cambio" target="t_leer" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+  </root>
+</mxGraphModel>
