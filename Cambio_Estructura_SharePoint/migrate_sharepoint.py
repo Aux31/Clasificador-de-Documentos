@@ -40,10 +40,7 @@ _GRAPH_BASE   = "https://graph.microsoft.com/v1.0"
 SCRIPT_DIR    = Path(__file__).parent
 CONFIG_FILE   = SCRIPT_DIR / "migration-config.json"
 DRY_RUN_FILE  = SCRIPT_DIR / "migration_sp_dry_run.json"
-BACKUP_DIR    = SCRIPT_DIR / "backups"
-BACKUP_DIR.mkdir(exist_ok=True)
 MIGRACIONES_LOG = SCRIPT_DIR / "migraciones.log"
-BACKUP_MAX_AGE_MINUTES = 30
 
 # OCs de prueba a procesar
 OCS_PRUEBA = ["Prueba_1", "Prueba_2", "cmer-OC-00194453-IITC000", "cmer-OC-00191063-TCHC001", "cmer-OC-00195231-PAINL000", "cmer-OC-00196719-PAINL000"]
@@ -281,45 +278,13 @@ def run_dry_run(gc: GraphClient, oc_filter: str | None, config: dict) -> None:
     print(f"  Resumen guardado : clasificacion_ocs.json")
 
 
-# ---------------------------------------------------------------------------
-# Modo backup
-# ---------------------------------------------------------------------------
-
-def run_backup(gc: GraphClient, oc_filter: str | None, config: dict) -> None:
-    if not DRY_RUN_FILE.exists():
-        sys.exit(f"[ERROR] Ejecuta --mode dry-run primero.")
-
-    ocs      = _resolver_ocs(oc_filter)
-    ts       = _timestamp()
-    snapshot = {"generated_at": _now_iso(), "ocs": {}}
-
-    for nombre_oc in ocs:
-        ruta_oc  = f"{SHAREPOINT_CARPETA_OCS}/{nombre_oc}"
-        oc_item  = _obtener_item(gc, ruta_oc)
-        if not oc_item:
-            print(f"[WARN] No se encontro: {ruta_oc}")
-            continue
-
-        oc_entry = {}
-        carpetas = _listar_carpetas(gc, oc_item["id"])
-        for carpeta in sorted(carpetas, key=lambda c: c["name"]):
-            archivos = [h["name"] for h in _listar_todos(gc, carpeta["id"]) if "file" in h]
-            oc_entry[carpeta["name"]] = sorted(archivos)
-        snapshot["ocs"][nombre_oc] = oc_entry
-
-    backup_file = BACKUP_DIR / f"migration_sp_backup_{ts}.json"
-    backup_file.write_text(
-        json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    print(f"[OK] Backup guardado en {backup_file}")
-    return backup_file
 
 
 # ---------------------------------------------------------------------------
 # Modo execute
 # ---------------------------------------------------------------------------
 
-def run_execute(gc: GraphClient, oc_filter: str | None, config: dict, backup_file: Path | None = None) -> None:
+def run_execute(gc: GraphClient, oc_filter: str | None, config: dict) -> None:
 
     ocs = _resolver_ocs(oc_filter)
 
@@ -346,7 +311,7 @@ def run_execute(gc: GraphClient, oc_filter: str | None, config: dict, backup_fil
         if scenario == 3:
             created = _ensure_new_structure(gc, oc_id, id_map, config, oc_log)
             print(f"  Sin borrados, {created} carpetas creadas")
-            _actualizar_registro(nombre_oc, oc_log, backup_file)
+            _actualizar_registro(nombre_oc, oc_log)
             continue
 
         # Escenarios 1 y 2: borrar carpetas viejas vacias
@@ -481,16 +446,6 @@ def _resolver_ocs(oc_filter: str | None) -> list[str]:
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-def _timestamp() -> str:
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
-
-def _find_recent_backup() -> Path | None:
-    cutoff     = datetime.now().timestamp() - BACKUP_MAX_AGE_MINUTES * 60
-    candidates = sorted(BACKUP_DIR.glob("migration_sp_backup_*.json"), reverse=True)
-    for f in candidates:
-        if f.stat().st_mtime >= cutoff:
-            return f
-    return None
 
 
 # ---------------------------------------------------------------------------
@@ -508,9 +463,8 @@ def _ocs_ya_migradas() -> set[str]:
     return migradas
 
 
-def _actualizar_registro(nombre_oc: str, oc_log: dict, backup_file: Path | None) -> None:
+def _actualizar_registro(nombre_oc: str, oc_log: dict) -> None:
     fecha  = datetime.now().strftime("%Y-%m-%d")
-    backup = f"backups/{backup_file.name}" if backup_file else "sin backup"
 
     ops_borradas = [op["folder"] for op in oc_log.get("operations", []) if op.get("action") == "delete" and op.get("result") == "ok"]
     ops_creadas  = [op["folder"] for op in oc_log.get("operations", []) if op.get("action") == "create" and op.get("result") == "ok"]
@@ -520,7 +474,6 @@ def _actualizar_registro(nombre_oc: str, oc_log: dict, backup_file: Path | None)
     lines = []
     lines.append(f"OC     : {nombre_oc}")
     lines.append(f"Fecha  : {fecha}")
-    lines.append(f"Backup : {backup}")
     if ops_borradas:
         lines.append(f"Borradas ({len(ops_borradas)}): {', '.join(ops_borradas)}")
     if ops_creadas:
@@ -544,7 +497,7 @@ def _actualizar_registro(nombre_oc: str, oc_log: dict, backup_file: Path | None)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Migracion de estructura de carpetas en SharePoint")
-    parser.add_argument("--mode", required=True, choices=["dry-run", "backup", "execute", "backup-execute"])
+    parser.add_argument("--mode", required=True, choices=["dry-run", "execute"])
     parser.add_argument("--oc",   default=None,
                         help="Nombre de una OC especifica, o 'all' para procesar todas las del registro")
     parser.add_argument("--all-registro", action="store_true",
@@ -558,13 +511,8 @@ def main() -> None:
 
     if args.mode == "dry-run":
         run_dry_run(gc, oc_filter, config)
-    elif args.mode == "backup":
-        run_backup(gc, oc_filter, config)
     elif args.mode == "execute":
         run_execute(gc, oc_filter, config)
-    elif args.mode == "backup-execute":
-        bf = run_backup(gc, oc_filter, config)
-        run_execute(gc, oc_filter, config, backup_file=bf)
 
 
 if __name__ == "__main__":
