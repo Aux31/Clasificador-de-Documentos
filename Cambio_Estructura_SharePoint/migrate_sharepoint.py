@@ -372,7 +372,7 @@ def run_execute(gc: GraphClient, oc_filter: str | None, config: dict) -> None:
                         })
                         print(f"  [WARN] {c['name']}: fuera de estructura nueva, tiene archivos")
 
-        _actualizar_registro(nombre_oc, oc_log, backup_file)
+        _actualizar_registro(nombre_oc, oc_log)
 
     print(f"\n[OK] Migracion completada. Ver {MIGRACIONES_LOG.name}")
 
